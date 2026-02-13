@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gamedevbench"
+version = "0.1.0"
+description = "A benchmark suite for game development tasks in Godot"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp",
+    "pyautogui",
+    "claude-code-sdk",
+    "pillow",
+    "openhands-sdk; python_version >= '3.12'",
+    "openhands-tools; python_version >= '3.12'",
+    "brokenaxes>=0.6.2",
+]
+
+[project.scripts]
+gamedevbench = "gamedevbench.src.benchmark_runner:main"
+gamedevbench-mcp = "gamedevbench.src.mcp_server:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tasks*", "results*", "scripts*", "gamedevbench_*", "auto_task_generation*", "youtube_documentation*", "anna*", "templates*", "runs*"]
