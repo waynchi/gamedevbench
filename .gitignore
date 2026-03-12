@@ -258,5 +258,3 @@ scripts/youtube_data_claude/*
 tasks/test_result*/
 .archiver_shadow/
 .snapshots/
-tasks/
-tasks_gt/

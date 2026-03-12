@@ -29,13 +29,15 @@ Install the agent(s) you want to use:
 
 ### Setup Tasks
 
-Before running the benchmark, unzip the tasks folder:
+Before running the benchmark, unzip the tasks:
 
 ```bash
-unzip tasks.zip
+bash unzip_tasks.sh
 ```
 
-**Note:** The tasks are distributed as a zip file to prevent accidental data leakage.
+This will unzip all individual task archives from `tasks/` and `tasks_gt/` in place.
+
+**Note:** Tasks are distributed as individual zip files to prevent accidental data leakage.
 
 ## Configuration
 
