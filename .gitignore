@@ -256,5 +256,7 @@ scripts/youtube_data_codex_2/**/repo
 scripts/youtube_data_claude/*
 .uv_cache/
 tasks/test_result*/
+tasks/task_*/
+tasks_gt/task_*/
 .archiver_shadow/
 .snapshots/
