@@ -9,6 +9,7 @@ from gamedevbench.src.claude_code_solver import ClaudeCodeSolver
 from gamedevbench.src.mini_swe_solver import MiniSweSolver
 from gamedevbench.src.codex_solver import CodexSolver
 from gamedevbench.src.gemini_solver import GeminiSolver
+from gamedevbench.src.opencode_solver import OpenCodeSolver
 
 # OpenHands requires Python 3.12+, make it optional
 try:
@@ -28,6 +29,7 @@ class SolverFactory:
         "mini-swe": MiniSweSolver,
         "codex": CodexSolver,
         "gemini-cli": GeminiSolver,
+        "opencode": OpenCodeSolver,
     }
 
     # Conditionally add OpenHands if available
@@ -48,7 +50,7 @@ class SolverFactory:
         Create a solver instance based on agent type.
 
         Args:
-            agent: Agent name (e.g., "claude-code", "mini-swe", "openhands", "codex", "gemini-cli")
+            agent: Agent name (e.g., "claude-code", "mini-swe", "openhands", "codex", "gemini-cli", "opencode")
             debug: Enable debug output
             model: Model name (used by solvers that support model selection)
             use_mcp: Enable MCP server functionality (will validate solver supports it)
@@ -93,9 +95,9 @@ class SolverFactory:
         }
 
         # Add model parameter for solvers that support it
-        if agent in ["claude-code", "mini-swe", "openhands", "gemini-cli", "codex"]:
+        if agent in ["claude-code", "mini-swe", "openhands", "gemini-cli", "codex", "opencode"]:
             should_pass_model = bool(model)
-            if agent in ["gemini-cli", "codex"] and model == "claude":
+            if agent in ["gemini-cli", "codex", "opencode"] and model == "claude":
                 should_pass_model = False
 
             if should_pass_model:

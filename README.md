@@ -56,6 +56,7 @@ GameDevBench contains **333 game development tasks** to evaluate LLM agents' abi
 | Claude Code | [code.claude.com](https://code.claude.com/docs/en/overview) |
 | Codex | [openai.com/codex](https://openai.com/codex/) |
 | Gemini CLI | [geminicli.com](https://geminicli.com/) |
+| OpenCode | [opencode.ai](https://opencode.ai/docs/) |
 | OpenHands | [openhands.dev](https://www.openhands.dev/) |
 
 ### Setup Tasks
@@ -92,7 +93,7 @@ uv run python gamedevbench/src/benchmark_runner.py \
 | Flag | Description |
 |------|-------------|
 | `--agent AGENT` | Agent to use *(required)* |
-| `--model MODEL` | Model name (e.g., `claude-sonnet-4-5-20250929`) |
+| `--model MODEL` | Model name (e.g., `claude-sonnet-4-5-20250929`; for OpenCode use `provider/model`) |
 | `--enable-mcp` | Enable MCP server for screenshot capabilities *(macOS only)* |
 | `--use-runtime-video` | Append Godot runtime instructions to prompts |
 | `--skip-display` | Skip tasks that require a display |

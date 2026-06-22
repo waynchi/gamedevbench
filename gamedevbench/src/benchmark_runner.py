@@ -1422,7 +1422,7 @@ def main():
     parser.add_argument(
         "--model",
         default="claude",
-        help="Model to use (for claude-code: model name; for mini-swe: 'claude' or 'gpt'; for openhands: model name like 'gpt-4o'; for gemini-cli: model name like 'gemini-2.0-flash'; ignored for codex)",
+        help="Model to use (for claude-code: model name; for mini-swe: 'claude' or 'gpt'; for openhands: model name like 'gpt-4o'; for gemini-cli: model name like 'gemini-2.0-flash'; for opencode: provider/model)",
     )
     parser.add_argument("--debug", help="Show debug output", action="store_true")
     parser.add_argument(
