@@ -8,10 +8,12 @@ import json
 import os
 import subprocess
 import time
+from pathlib import Path
 from typing import Any, Optional
 
 from gamedevbench.src.base_solver import BaseSolver
 from gamedevbench.src.utils.data_types import SolverResult, TokenUsage
+from gamedevbench.src.utils.constants import PROJECT_ROOT
 
 
 class OpenCodeSolver(BaseSolver):
@@ -31,6 +33,18 @@ class OpenCodeSolver(BaseSolver):
         super().__init__(timeout_seconds, debug, False, use_runtime_video)
         self.model = model
         self.agent = agent
+
+    @staticmethod
+    def _load_configured_model() -> Optional[str]:
+        config_path = PROJECT_ROOT / "opencode.json"
+        if not config_path.exists():
+            return None
+        try:
+            config = json.loads(config_path.read_text())
+        except Exception:
+            return None
+        model = config.get("model")
+        return model if isinstance(model, str) and model.strip() else None
 
     @staticmethod
     def _coerce_int(value: Any) -> int:
@@ -89,15 +103,9 @@ class OpenCodeSolver(BaseSolver):
                 "run",
                 "--format",
                 "json",
-                "--dangerously-skip-permissions",
                 "--dir",
                 str(os.getcwd()),
             ]
-
-            if self.agent:
-                cmd.extend(["--agent", self.agent])
-            if self.model:
-                cmd.extend(["--model", self.model])
 
             cmd.append(prompt)
 
@@ -113,6 +121,10 @@ class OpenCodeSolver(BaseSolver):
                 text=True,
                 timeout=self.timeout_seconds,
                 cwd=os.getcwd(),
+                env={
+                    **os.environ,
+                    "OPENCODE_CONFIG": str(PROJECT_ROOT / "opencode.json"),
+                },
             )
 
             duration = time.time() - start_time
@@ -129,7 +141,12 @@ class OpenCodeSolver(BaseSolver):
 
             final_response = self._parse_final_response(stdout)
             token_usage = self._parse_token_usage(stdout)
-            model_used = self._parse_model_name(stdout) or self.model or "opencode"
+            model_used = (
+                self._parse_model_name(stdout)
+                or self.model
+                or self._load_configured_model()
+                or "opencode"
+            )
             cost_usd = token_usage.calculate_cost(model_used) if token_usage else 0.0
 
             if result.returncode != 0:
@@ -153,12 +170,25 @@ class OpenCodeSolver(BaseSolver):
                 is_rate_limited=self.is_rate_limit_error(stdout + "\n" + stderr),
             )
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             duration = time.time() - start_time
+            stdout = e.stdout or ""
+            stderr = e.stderr or ""
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode(errors="ignore")
+            if isinstance(stderr, bytes):
+                stderr = stderr.decode(errors="ignore")
+            token_usage = self._parse_token_usage(stdout)
+            model_used = self.model or self._load_configured_model() or "opencode"
             return SolverResult(
                 success=False,
                 message=f"OpenCode execution timed out after {self.timeout_seconds}s",
                 duration_seconds=duration,
+                stdout=stdout,
+                stderr=stderr,
+                token_usage=token_usage,
+                model=model_used,
+                cost_usd=token_usage.calculate_cost(model_used) if token_usage else 0.0,
             )
         except FileNotFoundError:
             return SolverResult(
