@@ -10,6 +10,7 @@ import re
 import yaml
 import tempfile
 import uuid
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -28,6 +29,24 @@ from gamedevbench.src.utils.validation import ValidationParser
 from gamedevbench.src.solver_factory import SolverFactory
 
 
+def _run_task_worker(config: Dict) -> Dict:
+    """Run one benchmark task in a separate process."""
+    runner = GodotBenchmarkRunner(
+        use_gt=config["use_gt"],
+        agent=config["agent"],
+        model=config["model"],
+        debug=config["debug"],
+        resume=False,
+        use_mcp=config["use_mcp"],
+        resume_from=None,
+        skip_display=config["skip_display"],
+        use_runtime_video=config["use_runtime_video"],
+        run_name=config["run_name"],
+        parallel=1,
+    )
+    return runner.run_benchmark(config["task_name"])
+
+
 class GodotBenchmarkRunner:
     def __init__(
         self,
@@ -41,6 +60,7 @@ class GodotBenchmarkRunner:
         skip_display: bool = False,
         use_runtime_video: bool = False,
         run_name: Optional[str] = None,
+        parallel: int = 1,
     ):
         """
         Initialize the benchmark runner.
@@ -56,6 +76,7 @@ class GodotBenchmarkRunner:
             skip_display: Skip tasks that require display (requires_display=true in task_config.json)
             use_runtime_video: Enable runtime video mode (appends Godot runtime instructions to prompts)
             run_name: Optional name used to isolate result files for this run
+            parallel: Number of tasks to run concurrently when running a task list
         """
         self.godot_path = GODOT_EXEC_PATH
         if use_gt:
@@ -87,6 +108,7 @@ class GodotBenchmarkRunner:
         self.resume_from = resume_from
         self.skip_display = skip_display
         self.use_runtime_video = use_runtime_video
+        self.parallel = max(1, parallel)
 
         # Validate agent configuration early if agent is specified
         if self.agent:
@@ -1059,6 +1081,123 @@ script = ExtResource("test_script")
             print(f"Error reading task list file: {e}")
             return []
 
+    def _run_all_tasks_parallel(
+        self,
+        tasks: List[str],
+        completed_tasks: List[str],
+        results: List[Dict],
+    ) -> Dict:
+        """Run task list concurrently using one process per task."""
+        success_count = sum(1 for r in results if r.get("success", False))
+        skipped_count = sum(1 for r in results if r.get("skipped", False))
+        failure_count = len(results) - success_count - skipped_count
+        error_count = 0
+        rate_limited = False
+
+        print(f"Running validation on {len(tasks)} tasks with parallel={self.parallel}...")
+
+        worker_base = {
+            "use_gt": self.tasks_dir == GT_TASKS_DIR,
+            "agent": self.agent,
+            "model": self.model,
+            "debug": self.debug,
+            "use_mcp": self.use_mcp,
+            "skip_display": self.skip_display,
+            "use_runtime_video": self.use_runtime_video,
+            "run_name": self.run_name,
+        }
+
+        with ProcessPoolExecutor(max_workers=self.parallel) as executor:
+            future_to_task = {
+                executor.submit(
+                    _run_task_worker,
+                    {**worker_base, "task_name": task_name},
+                ): task_name
+                for task_name in tasks
+            }
+
+            for future in as_completed(future_to_task):
+                task_name = future_to_task[future]
+                try:
+                    task_result = future.result()
+                except Exception as e:
+                    error_count += 1
+                    error_result = ValidationResult(False, f"Error running task: {e}")
+                    task_result = {
+                        "task_name": task_name,
+                        "success": error_result.success,
+                        "message": error_result.message,
+                        "timestamp": error_result.timestamp,
+                        "agent": self.agent,
+                        "model": self.model,
+                        "use_mcp": self.use_mcp,
+                        "use_runtime_video": self.use_runtime_video,
+                        "skip_display": self.skip_display,
+                        "debug": self.debug,
+                    }
+                    print(f"Error running task {task_name}: {e}")
+
+                results.append(task_result)
+                completed_tasks.append(task_name)
+
+                if task_result.get("skipped", False):
+                    skipped_count += 1
+                    print(f"[{len(completed_tasks)}] {task_name}: skipped")
+                elif task_result.get("success", False):
+                    success_count += 1
+                    print(f"[{len(completed_tasks)}] {task_name}: passed")
+                else:
+                    failure_count += 1
+                    print(f"[{len(completed_tasks)}] {task_name}: failed")
+
+                rate_limited = bool(task_result.get("is_rate_limited", False))
+
+                self._save_progress(completed_tasks, results)
+                self._save_final_results(
+                    success_count,
+                    failure_count,
+                    error_count,
+                    skipped_count,
+                    results,
+                    rate_limited,
+                )
+
+                if rate_limited:
+                    print("\n" + "=" * 80)
+                    print("API RATE LIMIT/QUOTA EXCEEDED - STOPPING EXECUTION")
+                    print("=" * 80)
+                    for pending in future_to_task:
+                        pending.cancel()
+                    break
+
+        total_tasks = len(results)
+        final_results = self._create_final_results_summary(
+            success_count,
+            failure_count,
+            error_count,
+            skipped_count,
+            total_tasks,
+            results,
+        )
+        final_results["rate_limited"] = rate_limited
+        if rate_limited:
+            final_results["incomplete"] = True
+            final_results["remaining_tasks"] = len(self.list_tasks()) - len(completed_tasks)
+
+        self._save_final_results(
+            success_count,
+            failure_count,
+            error_count,
+            skipped_count,
+            results,
+            rate_limited,
+        )
+
+        if not rate_limited and not final_results.get("incomplete", False):
+            self._clear_progress()
+
+        return final_results
+
     def run_all_tasks(self, task_list_file: Optional[str] = None) -> Dict:
         """
         Run validation on all available tasks and generate final results summary.
@@ -1139,6 +1278,9 @@ script = ExtResource("test_script")
                     return self._create_final_results_summary(
                         success_count, failure_count, 0, skipped_count_existing, len(results), results
                     )
+
+        if self.parallel > 1:
+            return self._run_all_tasks_parallel(tasks, completed_tasks, results)
 
         success_count = sum(1 for r in results if r.get("success", False))
         failure_count = len(results) - success_count
@@ -1329,6 +1471,7 @@ script = ExtResource("test_script")
                 "skip_display": self.skip_display,
                 "debug": self.debug,
                 "run_name": self.run_name,
+                "parallel": self.parallel,
             },
             # Token usage statistics
             "token_statistics": {
@@ -1457,6 +1600,12 @@ def main():
         help="Optional name used to isolate outputs under results/<run_name>/ and tasks/test_result/<run_name>/",
         type=str,
     )
+    parser.add_argument(
+        "--parallel",
+        help="Number of tasks to run concurrently for task-list or all-task runs",
+        type=int,
+        default=1,
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # List command
@@ -1501,6 +1650,7 @@ def main():
         skip_display=args.skip_display,
         use_runtime_video=args.use_runtime_video,
         run_name=args.run_name,
+        parallel=args.parallel,
     )
 
     if args.command == "list":
