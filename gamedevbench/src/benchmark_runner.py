@@ -10,7 +10,7 @@ import re
 import yaml
 import tempfile
 import uuid
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -1107,67 +1107,85 @@ script = ExtResource("test_script")
             "run_name": self.run_name,
         }
 
+        task_iter = iter(tasks)
+        in_flight = {}
+
+        def submit_next(executor: ProcessPoolExecutor) -> bool:
+            try:
+                task_name = next(task_iter)
+            except StopIteration:
+                return False
+            future = executor.submit(
+                _run_task_worker,
+                {**worker_base, "task_name": task_name},
+            )
+            in_flight[future] = task_name
+            return True
+
         with ProcessPoolExecutor(max_workers=self.parallel) as executor:
-            future_to_task = {
-                executor.submit(
-                    _run_task_worker,
-                    {**worker_base, "task_name": task_name},
-                ): task_name
-                for task_name in tasks
-            }
+            for _ in range(min(self.parallel, len(tasks))):
+                submit_next(executor)
 
-            for future in as_completed(future_to_task):
-                task_name = future_to_task[future]
-                try:
-                    task_result = future.result()
-                except Exception as e:
-                    error_count += 1
-                    error_result = ValidationResult(False, f"Error running task: {e}")
-                    task_result = {
-                        "task_name": task_name,
-                        "success": error_result.success,
-                        "message": error_result.message,
-                        "timestamp": error_result.timestamp,
-                        "agent": self.agent,
-                        "model": self.model,
-                        "use_mcp": self.use_mcp,
-                        "use_runtime_video": self.use_runtime_video,
-                        "skip_display": self.skip_display,
-                        "debug": self.debug,
-                    }
-                    print(f"Error running task {task_name}: {e}")
+            while in_flight:
+                done, _ = wait(in_flight, return_when=FIRST_COMPLETED)
 
-                results.append(task_result)
-                completed_tasks.append(task_name)
+                for future in done:
+                    task_name = in_flight.pop(future)
+                    try:
+                        task_result = future.result()
+                    except Exception as e:
+                        error_count += 1
+                        error_result = ValidationResult(False, f"Error running task: {e}")
+                        task_result = {
+                            "task_name": task_name,
+                            "success": error_result.success,
+                            "message": error_result.message,
+                            "timestamp": error_result.timestamp,
+                            "agent": self.agent,
+                            "model": self.model,
+                            "use_mcp": self.use_mcp,
+                            "use_runtime_video": self.use_runtime_video,
+                            "skip_display": self.skip_display,
+                            "debug": self.debug,
+                        }
+                        print(f"Error running task {task_name}: {e}")
 
-                if task_result.get("skipped", False):
-                    skipped_count += 1
-                    print(f"[{len(completed_tasks)}] {task_name}: skipped")
-                elif task_result.get("success", False):
-                    success_count += 1
-                    print(f"[{len(completed_tasks)}] {task_name}: passed")
-                else:
-                    failure_count += 1
-                    print(f"[{len(completed_tasks)}] {task_name}: failed")
+                    results.append(task_result)
+                    completed_tasks.append(task_name)
 
-                rate_limited = bool(task_result.get("is_rate_limited", False))
+                    if task_result.get("skipped", False):
+                        skipped_count += 1
+                        print(f"[{len(completed_tasks)}] {task_name}: skipped")
+                    elif task_result.get("success", False):
+                        success_count += 1
+                        print(f"[{len(completed_tasks)}] {task_name}: passed")
+                    else:
+                        failure_count += 1
+                        print(f"[{len(completed_tasks)}] {task_name}: failed")
 
-                self._save_progress(completed_tasks, results)
-                self._save_final_results(
-                    success_count,
-                    failure_count,
-                    error_count,
-                    skipped_count,
-                    results,
-                    rate_limited,
-                )
+                    rate_limited = bool(task_result.get("is_rate_limited", False))
+
+                    self._save_progress(completed_tasks, results)
+                    self._save_final_results(
+                        success_count,
+                        failure_count,
+                        error_count,
+                        skipped_count,
+                        results,
+                        rate_limited,
+                    )
+
+                    if rate_limited:
+                        print("\n" + "=" * 80)
+                        print("API RATE LIMIT/QUOTA EXCEEDED - STOPPING EXECUTION")
+                        print("=" * 80)
+                        for pending in in_flight:
+                            pending.cancel()
+                        break
+
+                    submit_next(executor)
 
                 if rate_limited:
-                    print("\n" + "=" * 80)
-                    print("API RATE LIMIT/QUOTA EXCEEDED - STOPPING EXECUTION")
-                    print("=" * 80)
-                    for pending in future_to_task:
-                        pending.cancel()
                     break
 
         total_tasks = len(results)
