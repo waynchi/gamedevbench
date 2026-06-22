@@ -380,32 +380,23 @@ script = ExtResource("test_script")
             # Determine if we should use headless mode
             use_headless = not requires_display
 
-            # Run editor to ensure project files are loaded
+            # Import resources so fresh checkouts have generated .godot assets.
             cmd = [
                 self.godot_path,
-                "--editor",
-                "--log-file",
-                "-",
+                "--import",
+                "--quit",
                 "--path",
                 str(task_dir),
             ]
             if use_headless:
                 cmd.insert(1, "--headless")
 
-            try:
-                subprocess_result = subprocess.run(
-                    cmd, capture_output=True, text=True, timeout=3
-                )
-                # TODO Move this to a script that sets up the entire repo
-                print("Loading editor to ensure project files are fully loaded")
-            except subprocess.TimeoutExpired:
-                print("Loaded")
+            subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
+            print("Imported project resources")
 
             # Run test scene
             cmd = [
                 self.godot_path,
-                "--log-file",
-                "-",
                 "--path",
                 str(task_dir),
                 TEST_SCENE_NAME,
@@ -664,33 +655,24 @@ script = ExtResource("test_script")
         use_headless = not requires_display
 
         try:
-            # Run editor to ensure project files are loaded
+            # Import resources so fresh checkouts have generated .godot assets.
             cmd = [
                 self.godot_path,
-                "--editor",
-                "--log-file",
-                "-",
+                "--import",
+                "--quit",
                 "--path",
                 str(validation_dir),
             ]
             if use_headless:
                 cmd.insert(1, "--headless")
 
-            try:
-                subprocess.run(cmd, capture_output=True, text=True, timeout=3)
-                if self.debug:
-                    print(
-                        "      Loading editor to ensure project files are fully loaded"
-                    )
-            except subprocess.TimeoutExpired:
-                if self.debug:
-                    print("      Loaded")
+            subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
+            if self.debug:
+                print("      Imported project resources")
 
             # Run test scene
             cmd = [
                 self.godot_path,
-                "--log-file",
-                "-",
                 "--path",
                 str(validation_dir),
                 TEST_SCENE_NAME,

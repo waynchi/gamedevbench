@@ -172,7 +172,6 @@ class ClaudeCodeSolver(BaseSolver):
         except Exception as e:
             duration = time.time() - start_time
             error_msg = str(e)
-            breakpoint()
             is_rate_limited = self.is_rate_limit_error(error_msg)
 
             if self.debug:
