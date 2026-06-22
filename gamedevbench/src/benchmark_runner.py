@@ -801,6 +801,13 @@ script = ExtResource("test_script")
 
         # Determine actual model name for logging
         display_model = self.model
+        if self.agent == "opencode" and self.model == "claude":
+            try:
+                from gamedevbench.src.opencode_solver import OpenCodeSolver
+
+                display_model = OpenCodeSolver._load_configured_model() or self.model
+            except Exception:
+                display_model = self.model
         sandbox_dir = None
         validation_dir = None
 
@@ -810,25 +817,20 @@ script = ExtResource("test_script")
                 print(f"[1/5] Creating isolated sandbox environment...")
             sandbox_dir = self._create_sandbox_environment(task_dir)
 
-            # Step 1.5: Load sandbox in headless editor to ensure sprites/assets are imported
+            # Step 1.5: Import sandbox assets before the agent starts.
             if self.debug:
-                print(f"[1.5/5] Loading sandbox in editor to import assets...")
-            try:
-                cmd = [
-                    self.godot_path,
-                    "--headless",
-                    "--editor",
-                    "--log-file",
-                    "-",
-                    "--path",
-                    str(sandbox_dir),
-                ]
-                subprocess.run(cmd, capture_output=True, text=True, timeout=3)
-                if self.debug:
-                    print("      Assets loaded and imported")
-            except subprocess.TimeoutExpired:
-                if self.debug:
-                    print("      Assets loaded and imported")
+                print(f"[1.5/5] Importing sandbox assets...")
+            cmd = [
+                self.godot_path,
+                "--headless",
+                "--import",
+                "--quit",
+                "--path",
+                str(sandbox_dir),
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
+            if self.debug:
+                print("      Assets loaded and imported")
 
             # Step 2: Run agent in sandbox
             original_cwd = os.getcwd()
