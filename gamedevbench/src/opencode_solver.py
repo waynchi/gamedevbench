@@ -6,6 +6,7 @@ Uses OpenCode CLI in non-interactive mode.
 
 import json
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -64,18 +65,17 @@ class OpenCodeSolver(BaseSolver):
     @staticmethod
     def is_rate_limit_error(error_message: str) -> bool:
         error_lower = error_message.lower()
-        rate_limit_keywords = [
-            "rate limit",
-            "rate_limit",
-            "ratelimit",
-            "quota exceeded",
-            "quota_exceeded",
-            "429",
-            "too many requests",
-            "usage limit",
-            "credit balance",
+        rate_limit_patterns = [
+            r"\brate[-_ ]?limit(?:ed|s|[-_ ]?exceeded)?\b",
+            r"\bquota[-_ ]?exceeded\b",
+            r"\btoo many requests\b",
+            r"\busage limit\b",
+            r"\bcredit balance\b",
+            r"\bhttp(?: status)?\s*429\b",
+            r"\bstatus(?: code)?\s*429\b",
+            r"\b429\s+too many requests\b",
         ]
-        return any(keyword in error_lower for keyword in rate_limit_keywords)
+        return any(re.search(pattern, error_lower) for pattern in rate_limit_patterns)
 
     def solve_task(self) -> SolverResult:
         """Solve the task using OpenCode CLI."""
