@@ -67,6 +67,8 @@ The repo-level `opencode.json` is the source of truth for OpenCode command-line 
 
 Do not pass model, agent, or permission flags directly to `opencode run` for benchmark runs unless the config is intentionally changed.
 
+For MCP-enabled OpenCode runs, `opencode.mcp.json` is used instead. It keeps the same GLM 5.2 build-agent settings and enables the local `gamedevbench-mcp` server.
+
 Smoke-test OpenCode from the repo:
 
 ```bash
@@ -99,6 +101,33 @@ uv run gamedevbench \
 ```
 
 Parallelism is supported for task-list and all-task runs. Start at `--parallel 2` for OpenCode GLM 5.2, then increase only if the provider is stable.
+
+Headless GLM 5.2 run with both runtime-video prompt guidance and MCP enabled:
+
+```bash
+uv run gamedevbench \
+  --agent opencode \
+  --run-name glm52_opencode_runtime_video_mcp_headless \
+  --skip-display \
+  --use-runtime-video \
+  --enable-mcp \
+  --parallel 2 \
+  run --task-list tasks.yaml
+```
+
+Resume that run:
+
+```bash
+uv run gamedevbench \
+  --agent opencode \
+  --run-name glm52_opencode_runtime_video_mcp_headless \
+  --skip-display \
+  --use-runtime-video \
+  --enable-mcp \
+  --resume \
+  --parallel 2 \
+  run --task-list tasks.yaml
+```
 
 ## Useful Checks
 
