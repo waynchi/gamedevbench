@@ -1,0 +1,31 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "zai-coding-plan/glm-5.2",
+  "small_model": "zai-coding-plan/glm-5.2",
+  "default_agent": "build",
+  "enabled_providers": ["zai-coding-plan"],
+  "permission": "allow",
+  "provider": {
+    "zai-coding-plan": {
+      "options": {
+        "timeout": false,
+        "chunkTimeout": 300000
+      }
+    }
+  },
+  "mcp": {
+    "godot-screenshot": {
+      "type": "local",
+      "command": ["uv", "run", "gamedevbench-mcp"],
+      "enabled": true,
+      "timeout": 30000
+    }
+  },
+  "agent": {
+    "build": {
+      "model": "zai-coding-plan/glm-5.2",
+      "variant": "max",
+      "steps": 30
+    }
+  }
+}

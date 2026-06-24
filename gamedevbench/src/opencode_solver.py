@@ -20,20 +20,26 @@ from gamedevbench.src.utils.constants import PROJECT_ROOT
 class OpenCodeSolver(BaseSolver):
     """Solver that uses OpenCode CLI to complete game development tasks."""
 
-    SUPPORTS_MCP = False
+    SUPPORTS_MCP = True
     SUPPORTS_SYSTEM_PROMPT = False
 
     def __init__(
         self,
         timeout_seconds: int = 600,
         debug: bool = False,
+        use_mcp: bool = False,
         model: Optional[str] = None,
         agent: str = "build",
         use_runtime_video: bool = False,
     ):
-        super().__init__(timeout_seconds, debug, False, use_runtime_video)
+        super().__init__(timeout_seconds, debug, use_mcp, use_runtime_video)
         self.model = model
         self.agent = agent
+
+    def _config_path(self) -> Path:
+        if self.use_mcp:
+            return PROJECT_ROOT / "opencode.mcp.json"
+        return PROJECT_ROOT / "opencode.json"
 
     @staticmethod
     def _load_configured_model() -> Optional[str]:
@@ -123,7 +129,7 @@ class OpenCodeSolver(BaseSolver):
                 cwd=os.getcwd(),
                 env={
                     **os.environ,
-                    "OPENCODE_CONFIG": str(PROJECT_ROOT / "opencode.json"),
+                    "OPENCODE_CONFIG": str(self._config_path()),
                 },
             )
 
