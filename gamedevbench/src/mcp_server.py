@@ -12,6 +12,7 @@ import base64
 import tempfile
 import json
 import re
+import shutil
 from pathlib import Path
 from typing import Any, Dict
 from PIL import Image
@@ -156,6 +157,8 @@ async def launch_godot_and_screenshot(project_dir: str, display: int = DEFAULT_T
     Returns:
         Tuple of (base64_screenshot_data, mime_type)
     """
+    if not shutil.which("osascript") or not shutil.which("screencapture"):
+        return await capture_headless_screenshot(project_dir)
 
     # Launch Godot editor on specific screen
     # Godot screen numbering: Display N = Screen N-1
@@ -277,6 +280,111 @@ async def launch_godot_and_screenshot(project_dir: str, display: int = DEFAULT_T
         if 'godot_process' in locals() and godot_process.poll() is None:
             godot_process.terminate()
         return f"Error launching Godot or taking screenshot: {str(e)}"
+
+
+async def capture_headless_screenshot(project_dir: str) -> tuple[str, str] | str:
+    """Capture the Godot editor in a virtual X display for Linux/headless runners."""
+    if not shutil.which("Xvfb") or not shutil.which("ffmpeg"):
+        return "Error: Xvfb and ffmpeg are required for screenshots on this platform"
+
+    xvfb_process = None
+    godot_process = None
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="gamedevbench_mcp_") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            screenshot_path = tmp_path / "screenshot.png"
+            xvfb_log = open(tmp_path / "xvfb.log", "w")
+            godot_log = open(tmp_path / "godot.log", "w")
+
+            display = None
+            for candidate in range(120, 220):
+                socket_path = Path(f"/tmp/.X11-unix/X{candidate}")
+                if not socket_path.exists():
+                    display = f":{candidate}"
+                    break
+            if not display:
+                return "Error: Could not find a free X display for screenshot"
+
+            xvfb_process = subprocess.Popen(
+                ["Xvfb", display, "-screen", "0", f"{DEFAULT_RESOLUTION}x24"],
+                stdout=xvfb_log,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+            await asyncio.sleep(1)
+            if xvfb_process.poll() is not None:
+                return "Error: Xvfb failed to start"
+
+            godot_env = {**os.environ, "DISPLAY": display}
+            godot_process = subprocess.Popen(
+                [
+                    "godot",
+                    "--editor",
+                    "--windowed",
+                    "--path",
+                    project_dir,
+                    "--resolution",
+                    DEFAULT_RESOLUTION,
+                    "--screen",
+                    "0",
+                ],
+                stdout=godot_log,
+                stderr=subprocess.STDOUT,
+                text=True,
+                env=godot_env,
+            )
+
+            await asyncio.sleep(GODOT_LOAD_WAIT_TIME)
+
+            capture = subprocess.run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-f",
+                    "x11grab",
+                    "-video_size",
+                    DEFAULT_RESOLUTION,
+                    "-i",
+                    f"{display}.0",
+                    "-frames:v",
+                    "1",
+                    "-update",
+                    "1",
+                    str(screenshot_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if capture.returncode != 0:
+                return "Error: ffmpeg screenshot capture failed: " + (
+                    capture.stderr or capture.stdout or "unknown error"
+                )
+            if not screenshot_path.exists() or screenshot_path.stat().st_size == 0:
+                return "Error: Virtual display screenshot did not produce an image"
+
+            with open(screenshot_path, "rb") as f:
+                screenshot_bytes = f.read()
+
+            compressed_bytes, mime_type = compress_screenshot(screenshot_bytes)
+            screenshot_b64 = base64.b64encode(compressed_bytes).decode("utf-8")
+            return screenshot_b64, mime_type
+
+    except subprocess.TimeoutExpired:
+        return "Error: Screenshot capture timed out"
+    except FileNotFoundError as e:
+        return f"Error: Required screenshot executable not found: {e.filename}"
+    except Exception as e:
+        return f"Error capturing virtual display screenshot: {e}"
+    finally:
+        for process in (godot_process, xvfb_process):
+            if process and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
 
 async def run_server():
     """Run the MCP server."""
