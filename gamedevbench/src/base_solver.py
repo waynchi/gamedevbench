@@ -28,7 +28,7 @@ class BaseSolver(ABC):
 
     def __init__(
         self,
-        timeout_seconds: int = 600,
+        timeout_seconds: Optional[int] = 600,
         debug: bool = False,
         use_mcp: bool = False,
         use_runtime_video: bool = False,
