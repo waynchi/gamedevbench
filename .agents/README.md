@@ -166,14 +166,13 @@ uv run gamedevbench \
   run --task-list tasks.yaml
 ```
 
-Rerun the baseline OpenCode tasks that hit solver timeouts with a larger finite solver timeout:
+Rerun the baseline OpenCode tasks that hit solver timeouts with the default 600s / 10-minute solver timeout:
 
 ```bash
 uv run gamedevbench \
   --agent opencode \
-  --run-name glm52_opencode_baseline_timeouts_solver_timeout_1800 \
+  --run-name glm52_opencode_baseline_timeouts_default_timeout \
   --skip-display \
-  --solver-timeout 1800 \
   --resume \
   --parallel 2 \
   run --task-list task_lists/glm52_baseline_solver_timeouts.yaml
