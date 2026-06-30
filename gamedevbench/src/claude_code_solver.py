@@ -120,32 +120,15 @@ class ClaudeCodeSolver(BaseSolver):
 
             options = ClaudeAgentOptions(**options_kwargs)
 
-            full_response = []
-            token_usage = TokenUsage()
-            total_cost = 0.0
-            model_used = self.model or "claude-sonnet-4-20250514"  # Default model
+            result = await asyncio.wait_for(
+                self._run_claude_query(prompt, options),
+                timeout=self.timeout_seconds if self.timeout_seconds else None,
+            )
 
-            async for message in query(prompt=prompt, options=options):
-                if self.debug:
-                    print(message, end="", flush=True)
-                full_response.append(str(message))
-
-                # Check for ResultMessage which contains usage info
-                if hasattr(message, 'usage') and message.usage:
-                    usage = message.usage
-                    # Accumulate token usage across all messages
-                    token_usage.input_tokens += usage.get('input_tokens', 0)
-                    token_usage.output_tokens += usage.get('output_tokens', 0)
-                    token_usage.total_tokens = token_usage.input_tokens + token_usage.output_tokens
-                    token_usage.cache_read_tokens += usage.get('cache_read_input_tokens', 0)
-                    token_usage.cache_write_tokens += usage.get('cache_creation_input_tokens', 0)
-
-                if hasattr(message, 'total_cost_usd') and message.total_cost_usd:
-                    # Accumulate cost across all messages
-                    total_cost += message.total_cost_usd
-
-                if hasattr(message, 'model') and message.model:
-                    model_used = message.model
+            full_response = result["full_response"]
+            token_usage = result["token_usage"]
+            total_cost = result["total_cost"]
+            model_used = result["model_used"]
 
             duration = time.time() - start_time
             response_text = "".join(full_response)
@@ -169,6 +152,21 @@ class ClaudeCodeSolver(BaseSolver):
             )
             return result
 
+        except asyncio.TimeoutError:
+            duration = time.time() - start_time
+            if self.debug:
+                print(
+                    f"\nCLAUDE CODE EXECUTION TIMED OUT AFTER "
+                    f"{self.timeout_seconds}s"
+                )
+                print("=" * 60)
+
+            return SolverResult(
+                success=False,
+                message=f"Claude Code execution timed out after {self.timeout_seconds}s",
+                duration_seconds=duration,
+            )
+
         except Exception as e:
             duration = time.time() - start_time
             error_msg = str(e)
@@ -186,6 +184,47 @@ class ClaudeCodeSolver(BaseSolver):
                 duration_seconds=duration,
                 is_rate_limited=is_rate_limited,
             )
+
+    async def _run_claude_query(self, prompt: str, options: ClaudeAgentOptions) -> dict:
+        full_response = []
+        token_usage = TokenUsage()
+        total_cost = 0.0
+        model_used = self.model or "claude-sonnet-4-20250514"  # Default model
+
+        async for message in query(prompt=prompt, options=options):
+            if self.debug:
+                print(message, end="", flush=True)
+            full_response.append(str(message))
+
+            # Check for ResultMessage which contains usage info
+            if hasattr(message, 'usage') and message.usage:
+                usage = message.usage
+                # Accumulate token usage across all messages
+                token_usage.input_tokens += usage.get('input_tokens', 0)
+                token_usage.output_tokens += usage.get('output_tokens', 0)
+                token_usage.total_tokens = (
+                    token_usage.input_tokens + token_usage.output_tokens
+                )
+                token_usage.cache_read_tokens += usage.get(
+                    'cache_read_input_tokens', 0
+                )
+                token_usage.cache_write_tokens += usage.get(
+                    'cache_creation_input_tokens', 0
+                )
+
+            if hasattr(message, 'total_cost_usd') and message.total_cost_usd:
+                # Accumulate cost across all messages
+                total_cost += message.total_cost_usd
+
+            if hasattr(message, 'model') and message.model:
+                model_used = message.model
+
+        return {
+            "full_response": full_response,
+            "token_usage": token_usage,
+            "total_cost": total_cost,
+            "model_used": model_used,
+        }
 
     def solve_task(self) -> SolverResult:
         """Synchronous wrapper for async solve_task_async."""
