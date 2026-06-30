@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-openagent.schema.json",
+  "runtime_fallback": false,
+  "agents": {
+    "sisyphus": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "hephaestus": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "prometheus": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "metis": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "momus": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "atlas": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "oracle": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] },
+    "librarian": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] },
+    "explore": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] },
+    "multimodal-looker": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] },
+    "sisyphus-junior": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] }
+  },
+  "categories": {
+    "visual-engineering": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "ultrabrain": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "deep": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "artistry": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "unspecified-high": { "model": "opencode-go/deepseek-v4-pro", "fallback_models": [] },
+    "quick": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] },
+    "unspecified-low": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] },
+    "writing": { "model": "opencode-go/deepseek-v4-flash", "fallback_models": [] }
+  }
+}

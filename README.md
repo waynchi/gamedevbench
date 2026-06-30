@@ -46,6 +46,8 @@ Install the agent(s) you want to use:
 - **Codex** — [Codex](https://openai.com/codex/)
 - **Gemini CLI** — [Gemini CLI](https://geminicli.com/)
 - **OpenHands** — [OpenHands](https://www.openhands.dev/)
+- **OpenCode** — [OpenCode](https://opencode.ai/)
+- **Pi** — [Pi coding agent](https://github.com/badlogic/pi-mono)
 
 #### Setup Tasks
 
@@ -80,6 +82,33 @@ uv run python gamedevbench/src/benchmark_runner.py \
 | `codex` | OpenAI Codex |
 | `gemini-cli` | Google Gemini CLI |
 | `openhands` | OpenHands (requires Python 3.12+) |
+| `opencode` | OpenCode CLI, using its default agent prompt and tools |
+| `omo` | Oh My OpenAgent's Sisyphus orchestrator in an isolated OpenCode config |
+| `pi` | Pi coding agent, using its default prompt, tools, and extensions |
+| `pi-stock` | Pi with an isolated config that omits the user's `SYSTEM.md` |
+
+OpenCode and Pi use different provider-qualified model names. For example, the
+same DeepSeek V4 Flash model may be selected as
+`opencode-go/deepseek-v4-flash` in OpenCode and
+`deepseek/deepseek-v4-flash` in Pi. Verify the available names with
+`opencode models` and `pi --list-models deepseek` before a run.
+
+#### Isolated Pi and OMO Variants
+
+Prepare both isolated configurations without modifying the user's normal Pi or
+OpenCode configuration:
+
+```powershell
+.\prepare_benchmark_variants.ps1
+```
+
+The OMO configuration pins `oh-my-openagent@4.10.0`, disables model fallback,
+and maps all built-in agents and categories to
+`opencode-go/deepseek-v4-flash`. Run the paired 24-task comparison with:
+
+```powershell
+.\run_benchmark_variants.ps1
+```
 
 #### Command-Line Options
 
@@ -105,6 +134,40 @@ Benchmark results are saved to `results/` directory with the following informati
 - Token usage and costs
 - Execution time
 - Validation results
+- Environment metadata, including agent CLI, Godot, Python, and repository versions
+
+### Local 24-Task Agent Harness Comparison
+
+The following local comparison used the same fixed 24-task subset,
+`benchmark_24.yaml`, across agent harnesses. Each run used the normal
+GameDevBench validation loop in Godot 4.6.2 and recorded token/cost data from
+the agent harness output. Runs were kept in separate result directories and
+were not merged with the upstream benchmark leaderboard.
+
+Unless noted otherwise, reasoning was configured through the corresponding
+agent's normal settings rather than explicit benchmark CLI flags. Claude Code
+was run with high effort; OpenCode and OMO were run with medium effort; Pi
+runs used high thinking from Pi's `defaultThinkingLevel`; the Codex baseline
+used the configured default model with medium reasoning.
+
+| Run | Agent / Harness | Model or routing | Reasoning | Passed | Success rate | Tokens | Cost | Notes |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| DeepSeek V4 Pro practical | Claude Code | `deepseek-v4-pro` with configured Claude Code sub-model routing | High | 11 / 24 | 45.83% | 3,361,199 | $0.5635 | Claude Code routed most recorded task calls to the configured fast sub-model, which affects the cost comparison. |
+| DeepSeek V4 Pro practical | OpenCode | `opencode-go/deepseek-v4-pro` | Medium | 8 / 24 | 33.33% | 654,711 | $1.4755 | Standard OpenCode harness. |
+| DeepSeek V4 Pro practical | Pi | `deepseek/deepseek-v4-pro` | High | 9 / 24 | 37.50% | 440,759 | $1.0659 | Pi run using the user's replacement system prompt. |
+| DeepSeek V4 Pro practical | Pi stock | `deepseek/deepseek-v4-pro` | High | 7 / 24 | 29.17% | 401,934 | $1.0565 | Isolated Pi config without the user's replacement system prompt; one runner error was recorded. |
+| DeepSeek V4 Pro practical | OMO | Mixed `deepseek-v4-pro` / `deepseek-v4-flash` role routing | Medium | 6 / 24 | 25.00% | 1,190,474 | $2.4842 | Practical mixed setup: orchestration and high-impact roles used Pro, lightweight/support roles used Flash. |
+| Codex baseline | Codex | Configured default `gpt-5.5` | Medium | 14 / 24 | 58.33% | 4,584,125 | $14.7274 | Run without an explicit `--model`; cost uses local runner pricing metadata and may not match actual billing. |
+| Pi GLM-5.2 | Pi | `opencode_go/glm-5.2` | High | 8 / 24 | 33.33% | 379,584 | $2.2055 | Three connection-error tasks were rerun and merged into the run; six zero-token timeout/error tasks remained. |
+| Pi Qwen3.7 Max | Pi | `opencode_go/qwen3.7-max` | High | 11 / 24 | 45.83% | 765,477 | $3.7130 | One runner error (`task_0109`) was recorded. |
+
+The 24-task subset used for these local runs was:
+
+`task_0001`, `task_0007`, `task_0012`, `task_0018`, `task_0024`,
+`task_0029`, `task_0035`, `task_0041`, `task_0047`, `task_0052`,
+`task_0058`, `task_0064`, `task_0069`, `task_0075`, `task_0081`,
+`task_0086`, `task_0092`, `task_0098`, `task_0104`, `task_0109`,
+`task_0115`, `task_0121`, `task_0126`, and `task_0132`.
 
 ## Citation
 

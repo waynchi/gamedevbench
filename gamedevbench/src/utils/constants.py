@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from pathlib import Path
 
 # Directory paths
@@ -9,7 +10,7 @@ GT_TASKS_DIR = PROJECT_ROOT / "tasks_gt"
 RESULTS_FOLDER = PROJECT_ROOT / "results"
 
 # Godot configuration
-GODOT_EXEC_PATH = "godot"
+GODOT_EXEC_PATH = os.environ.get("GODOT_EXEC_PATH", "godot")
 GODOT_PROJECT_NAME = "project.godot"
 TEST_SCENE_NAME = "res://scenes/test.tscn"
 

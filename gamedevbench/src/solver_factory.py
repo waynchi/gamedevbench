@@ -9,6 +9,10 @@ from gamedevbench.src.claude_code_solver import ClaudeCodeSolver
 from gamedevbench.src.mini_swe_solver import MiniSweSolver
 from gamedevbench.src.codex_solver import CodexSolver
 from gamedevbench.src.gemini_solver import GeminiSolver
+from gamedevbench.src.opencode_solver import OpenCodeSolver
+from gamedevbench.src.omo_solver import OmoSolver
+from gamedevbench.src.pi_solver import PiSolver
+from gamedevbench.src.pi_stock_solver import PiStockSolver
 
 # OpenHands requires Python 3.12+, make it optional
 try:
@@ -28,6 +32,10 @@ class SolverFactory:
         "mini-swe": MiniSweSolver,
         "codex": CodexSolver,
         "gemini-cli": GeminiSolver,
+        "opencode": OpenCodeSolver,
+        "omo": OmoSolver,
+        "pi": PiSolver,
+        "pi-stock": PiStockSolver,
     }
 
     # Conditionally add OpenHands if available
@@ -93,7 +101,7 @@ class SolverFactory:
         }
 
         # Add model parameter for solvers that support it
-        if agent in ["claude-code", "mini-swe", "openhands", "gemini-cli", "codex"]:
+        if agent in ["claude-code", "mini-swe", "openhands", "gemini-cli", "codex", "opencode", "omo", "pi", "pi-stock"]:
             if model:
                 kwargs["model"] = model
 

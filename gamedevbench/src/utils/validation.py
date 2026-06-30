@@ -76,7 +76,7 @@ class ValidationParser:
         filepath = results_dir / filename
         
         # Save result to JSON
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(result.to_dict(), f, indent=2)
         
         print(f"Validation result saved to: {filepath}")

@@ -9,6 +9,8 @@ ensuring consistency across different agents.
 import json
 from typing import Optional
 
+from gamedevbench.src.utils.constants import GODOT_EXEC_PATH
+
 
 def load_task_config() -> Optional[dict]:
     """Load task configuration from task_config.json in current directory.
@@ -17,7 +19,7 @@ def load_task_config() -> Optional[dict]:
         Parsed task configuration dict, or None if loading fails
     """
     try:
-        with open("task_config.json", "r") as f:
+        with open("task_config.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"Error loading config: {e}")
@@ -44,18 +46,18 @@ def create_task_prompt(config: dict, use_runtime_video: bool = False, use_mcp: b
     instruction = config.get("instruction")
     
     instruction += "\n You must complete the full task without any further assistance."
-    instruction += "\n Godot is installed and you can run godot using the `godot` command. It is recommended to run this with a timeout (e.g., `timeout 10 godot` for 10 second timeout) to prevent hanging."
+    instruction += f"\n Godot is installed at `{GODOT_EXEC_PATH}`. Use that exact executable path when running Godot and always set a timeout to prevent hanging."
     instruction += "You are a visual agent and can use images and videos to help you understand the state of the game."
 
     if use_runtime_video:
         runtime_guidance = """
-    - You can run the game and get an image with `godot --path . --quit-after 1
+    - You can run the game and get an image with `"{godot_exec}" --path . --quit-after 1
     --write-movie output.png`.
-    - You can save a movie file as avi instead with `timeout 60s godot --path . --quit-after 60 --write-movie output.avi`. This is a 1 second or 60 frame video. You can adjust as necessary.
+    - You can save a movie file as avi instead with `"{godot_exec}" --path . --quit-after 60 --write-movie output.avi`. This is a 1 second or 60 frame video. You can adjust as necessary.
     - It is very important that you ensure godot closes after running, or else the task will hang indefinitely.
     - You should use the video or images to verify that your changes worked as expected.
     """
-        instruction += runtime_guidance
+        instruction += runtime_guidance.format(godot_exec=GODOT_EXEC_PATH)
 
     if use_mcp:
         mcp_guidance = """

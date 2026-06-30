@@ -5,8 +5,21 @@ from datetime import datetime
 from typing import Dict, Optional
 
 
-# Token pricing per 1M tokens (USD) - Updated December 2024
+# Token pricing per 1M tokens (USD).
 TOKEN_PRICING = {
+    # DeepSeek via OpenCode Go
+    "deepseek-v4-flash": {
+        "input": 0.14,
+        "output": 0.28,
+        "cache_read": 0.0028,
+        "cache_write": 0.0,
+    },
+    "deepseek-v4-pro": {
+        "input": 1.74,
+        "output": 3.48,
+        "cache_read": 0.0145,
+        "cache_write": 0.0,
+    },
     # Anthropic Claude
     "claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00},
     "claude-3-5-sonnet": {"input": 3.00, "output": 15.00},
@@ -44,15 +57,21 @@ class TokenUsage:
         model_lower = model.lower()
         pricing = TOKEN_PRICING.get("default")
 
-        for key in TOKEN_PRICING:
+        for key in sorted(TOKEN_PRICING, key=len, reverse=True):
             if key in model_lower:
                 pricing = TOKEN_PRICING[key]
                 break
 
         input_cost = (self.input_tokens / 1_000_000) * pricing["input"]
         output_cost = (self.output_tokens / 1_000_000) * pricing["output"]
+        cache_read_cost = (self.cache_read_tokens / 1_000_000) * pricing.get(
+            "cache_read", 0.0
+        )
+        cache_write_cost = (self.cache_write_tokens / 1_000_000) * pricing.get(
+            "cache_write", 0.0
+        )
 
-        return input_cost + output_cost
+        return input_cost + output_cost + cache_read_cost + cache_write_cost
 
     def to_dict(self) -> Dict:
         return {

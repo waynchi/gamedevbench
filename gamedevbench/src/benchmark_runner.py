@@ -6,6 +6,7 @@ import argparse
 import os
 import shutil
 import csv
+import sys
 import yaml
 import tempfile
 import uuid
@@ -23,8 +24,59 @@ from gamedevbench.src.utils.constants import (
     TIMEOUT,
 )
 from gamedevbench.src.utils.data_types import ValidationResult
+from gamedevbench.src.utils.environment import collect_environment_metadata
 from gamedevbench.src.utils.validation import ValidationParser
 from gamedevbench.src.solver_factory import SolverFactory
+
+MAX_TRAJECTORY_STREAM_CHARS = 5_000_000
+
+
+def _configure_utf8_stdio():
+    """Use UTF-8 for redirected Windows output without failing on bad characters."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
+def _write_solver_trajectory(
+    log_file_path: Path,
+    task_name: str,
+    agent: str,
+    display_model: Optional[str],
+    sandbox_dir: Path,
+    solver_result,
+):
+    """Persist a solver trajectory without relying on the platform encoding."""
+    with open(log_file_path, "w", encoding="utf-8", errors="replace") as f:
+        f.write(f"Task: {task_name}\n")
+        f.write(f"Agent: {agent}\n")
+        f.write(f"Model: {display_model}\n")
+        f.write(f"Sandbox: {sandbox_dir}\n")
+        f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+        f.write("=" * 80 + "\n\n")
+        if solver_result:
+            f.write(f"Success: {solver_result.success}\n")
+            f.write(f"Message: {solver_result.message}\n")
+            f.write(f"Duration: {solver_result.duration_seconds:.2f}s\n\n")
+            f.write("STDOUT:\n")
+            f.write(_bounded_trajectory_text(solver_result.stdout or ""))
+            f.write("\n\nSTDERR:\n")
+            f.write(_bounded_trajectory_text(solver_result.stderr or ""))
+
+
+def _bounded_trajectory_text(text: str) -> str:
+    """Keep trajectory logs useful without persisting huge cumulative JSON streams."""
+    if len(text) <= MAX_TRAJECTORY_STREAM_CHARS:
+        return text
+
+    half = MAX_TRAJECTORY_STREAM_CHARS // 2
+    omitted = len(text) - (half * 2)
+    return (
+        text[:half]
+        + f"\n\n... omitted {omitted} characters from oversized trajectory ...\n\n"
+        + text[-half:]
+    )
 
 
 class GodotBenchmarkRunner:
@@ -70,6 +122,7 @@ class GodotBenchmarkRunner:
         self.resume_from = resume_from
         self.skip_display = skip_display
         self.use_runtime_video = use_runtime_video
+        self.environment_metadata = collect_environment_metadata(self.agent)
 
         # Validate agent configuration early if agent is specified
         if self.agent:
@@ -130,7 +183,7 @@ class GodotBenchmarkRunner:
             "results": results,
             "timestamp": datetime.now().isoformat(),
         }
-        with open(self.progress_file, "w") as f:
+        with open(self.progress_file, "w", encoding="utf-8") as f:
             json.dump(progress_data, f, indent=2)
         if self.debug:
             print(f"Progress saved to: {self.progress_file}")
@@ -141,7 +194,7 @@ class GodotBenchmarkRunner:
             return [], []
 
         try:
-            with open(self.progress_file, "r") as f:
+            with open(self.progress_file, "r", encoding="utf-8") as f:
                 progress_data = json.load(f)
             completed_tasks = progress_data.get("completed_tasks", [])
             results = progress_data.get("results", [])
@@ -173,7 +226,7 @@ class GodotBenchmarkRunner:
             return [], [], []
 
         try:
-            with open(results_path, "r") as f:
+            with open(results_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             tasks_to_skip = []
@@ -216,7 +269,7 @@ class GodotBenchmarkRunner:
         config_path = self.tasks_dir / task_name / "task_config.json"
 
         try:
-            with open(config_path, "r") as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             print(f"Error loading config for task {task_name}: {e}")
@@ -271,7 +324,7 @@ class GodotBenchmarkRunner:
                 print(f"Main scene not found: {main_scene_path}")
                 return False
 
-            with open(main_scene_path, "r") as f:
+            with open(main_scene_path, "r", encoding="utf-8", errors="replace") as f:
                 main_content = f.read()
 
             # Create validation scene content by adding test node
@@ -318,7 +371,7 @@ script = ExtResource("test_script")
 
             # Write the validation scene
             validation_scene_path = task_dir / "scenes" / "validation_scene.tscn"
-            with open(validation_scene_path, "w") as f:
+            with open(validation_scene_path, "w", encoding="utf-8") as f:
                 f.write(validation_content)
 
             return True
@@ -368,7 +421,12 @@ script = ExtResource("test_script")
 
             try:
                 subprocess_result = subprocess.run(
-                    cmd, capture_output=True, text=True, timeout=3
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=3,
                 )
                 # TODO Move this to a script that sets up the entire repo
                 print("Loading editor to ensure project files are fully loaded")
@@ -390,7 +448,12 @@ script = ExtResource("test_script")
             mode_str = "headless mode" if use_headless else "display mode"
             print(f"Running validation for task: {task_name} ({mode_str})")
             subprocess_result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=TIMEOUT
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=TIMEOUT,
             )
 
             # Parse the output for test results
@@ -556,7 +619,7 @@ script = ExtResource("test_script")
         task_config_src = task_dir / "task_config.json"
         if task_config_src.exists():
             try:
-                with open(task_config_src, "r") as f:
+                with open(task_config_src, "r", encoding="utf-8") as f:
                     full_config = json.load(f)
                 # Only include instruction field - nothing else that could help cheat
                 minimal_config = {
@@ -564,7 +627,7 @@ script = ExtResource("test_script")
                         "instruction", "No instruction provided"
                     )
                 }
-                with open(sandbox_dir / "task_config.json", "w") as f:
+                with open(sandbox_dir / "task_config.json", "w", encoding="utf-8") as f:
                     json.dump(minimal_config, f, indent=2)
             except Exception as e:
                 if self.debug:
@@ -651,7 +714,14 @@ script = ExtResource("test_script")
                 cmd.insert(1, "--headless")
 
             try:
-                subprocess.run(cmd, capture_output=True, text=True, timeout=3)
+                subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=3,
+                )
                 if self.debug:
                     print(
                         "      Loading editor to ensure project files are fully loaded"
@@ -677,7 +747,12 @@ script = ExtResource("test_script")
                 print(f"      Running validation in: {validation_dir} ({mode_str})")
 
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=TIMEOUT
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=TIMEOUT,
             )
             output = result.stdout + result.stderr
             validation_result = ValidationParser.parse_output(output, debug=self.debug)
@@ -754,7 +829,7 @@ script = ExtResource("test_script")
 
             # Write to result.json
             result_json_path = result_subdir / "result.json"
-            with open(result_json_path, "w") as f:
+            with open(result_json_path, "w", encoding="utf-8") as f:
                 json.dump(result_json, f, indent=2)
 
         return result_subdir
@@ -815,7 +890,14 @@ script = ExtResource("test_script")
                     "--path",
                     str(sandbox_dir),
                 ]
-                subprocess.run(cmd, capture_output=True, text=True, timeout=3)
+                subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=3,
+                )
                 if self.debug:
                     print("      Assets loaded and imported")
             except subprocess.TimeoutExpired:
@@ -846,22 +928,18 @@ script = ExtResource("test_script")
                 )
                 solver_result = solver.solve_task()
 
-                # Save solver output to log file
-                with open(log_file_path, "w") as f:
-                    f.write(f"Task: {task_name}\n")
-                    f.write(f"Agent: {self.agent}\n")
-                    f.write(f"Model: {display_model}\n")
-                    f.write(f"Sandbox: {sandbox_dir}\n")
-                    f.write(f"Timestamp: {datetime.now().isoformat()}\n")
-                    f.write("=" * 80 + "\n\n")
-                    if solver_result:
-                        f.write(f"Success: {solver_result.success}\n")
-                        f.write(f"Message: {solver_result.message}\n")
-                        f.write(f"Duration: {solver_result.duration_seconds:.2f}s\n\n")
-                        f.write("STDOUT:\n")
-                        f.write(solver_result.stdout or "")
-                        f.write("\n\nSTDERR:\n")
-                        f.write(solver_result.stderr or "")
+                # Logging failures must not discard a completed solver result.
+                try:
+                    _write_solver_trajectory(
+                        log_file_path,
+                        task_name,
+                        self.agent,
+                        display_model,
+                        sandbox_dir,
+                        solver_result,
+                    )
+                except Exception as log_error:
+                    print(f"Warning: Could not save solver trajectory: {log_error}")
 
                 if self.debug:
                     print(
@@ -934,7 +1012,11 @@ script = ExtResource("test_script")
                 "message": validation_result.message,
                 "timestamp": validation_result.timestamp,
                 "agent": self.agent,
-                "model": display_model,
+                "model": (
+                    solver_result.model
+                    if solver_result and solver_result.model
+                    else display_model
+                ),
                 "use_mcp": self.use_mcp,
                 "use_runtime_video": self.use_runtime_video,
                 "skip_display": self.skip_display,
@@ -1001,14 +1083,14 @@ script = ExtResource("test_script")
         # Save final results to JSON
         RESULTS_FOLDER.mkdir(exist_ok=True)
         final_results_path = RESULTS_FOLDER / "final_results.json"
-        with open(final_results_path, "w") as f:
+        with open(final_results_path, "w", encoding="utf-8") as f:
             json.dump(final_results, f, indent=2)
 
         # Also save to agent-model-specific file if agent is specified
         if self.agent:
             safe_model = self.model.replace("/", "_") if self.model else "default"
             agent_model_results_path = RESULTS_FOLDER / f"{self.agent}_{safe_model}_final_results.json"
-            with open(agent_model_results_path, "w") as f:
+            with open(agent_model_results_path, "w", encoding="utf-8") as f:
                 json.dump(final_results, f, indent=2)
 
         # Save results to CSV
@@ -1213,14 +1295,14 @@ script = ExtResource("test_script")
         # Save final results to JSON
         RESULTS_FOLDER.mkdir(exist_ok=True)
         final_results_path = RESULTS_FOLDER / "final_results.json"
-        with open(final_results_path, "w") as f:
+        with open(final_results_path, "w", encoding="utf-8") as f:
             json.dump(final_results, f, indent=2)
 
         # Also save to agent-model-specific file if agent is specified
         if self.agent:
             safe_model = self.model.replace("/", "_") if self.model else "default"
             agent_model_results_path = RESULTS_FOLDER / f"{self.agent}_{safe_model}_final_results.json"
-            with open(agent_model_results_path, "w") as f:
+            with open(agent_model_results_path, "w", encoding="utf-8") as f:
                 json.dump(final_results, f, indent=2)
 
         # Save results to CSV
@@ -1313,6 +1395,7 @@ script = ExtResource("test_script")
                 "skip_display": self.skip_display,
                 "debug": self.debug,
             },
+            "environment": self.environment_metadata,
             # Token usage statistics
             "token_statistics": {
                 "total_input_tokens": total_input_tokens,
@@ -1365,7 +1448,7 @@ script = ExtResource("test_script")
             "result_dir",
         ]
 
-        with open(csv_path, "w", newline="") as csvfile:
+        with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -1397,6 +1480,7 @@ script = ExtResource("test_script")
 
 
 def main():
+    _configure_utf8_stdio()
     parser = argparse.ArgumentParser(description="Godot Benchmark Runner")
     parser.add_argument("--gt", help="Use GT tasks directory", action="store_true")
     parser.add_argument(
@@ -1406,8 +1490,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="claude",
-        help="Model to use (for claude-code: model name; for mini-swe: 'claude' or 'gpt'; for openhands: model name like 'gpt-4o'; for gemini-cli: model name like 'gemini-2.0-flash'; ignored for codex)",
+        default=None,
+        help="Agent-specific model name (for example: opencode-go/deepseek-v4-flash for OpenCode or deepseek/deepseek-v4-flash for Pi)",
     )
     parser.add_argument("--debug", help="Show debug output", action="store_true")
     parser.add_argument(
