@@ -43,7 +43,7 @@ class SolverFactory:
         debug: bool = False,
         model: Optional[str] = None,
         use_mcp: bool = False,
-        timeout_seconds: int = 600,
+        timeout_seconds: Optional[int] = 600,
         use_runtime_video: bool = False,
     ) -> BaseSolver:
         """

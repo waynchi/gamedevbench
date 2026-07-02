@@ -7,6 +7,7 @@ Uses OpenHands SDK with MCP server for Godot screenshots.
 import json
 import time
 import os
+import signal
 from typing import Optional
 
 from pydantic import SecretStr
@@ -42,6 +43,9 @@ class OpenHandsSolver(BaseSolver):
         "gpt-4": "openai/gpt-4",
         "o1": "openai/o1",
         "o3": "openai/o3",
+        "glm": "openrouter/z-ai/glm-5.2",
+        "glm-5.2": "openrouter/z-ai/glm-5.2",
+        "z-ai/glm-5.2": "openrouter/z-ai/glm-5.2",
     }
 
     def __init__(
@@ -142,6 +146,7 @@ class OpenHandsSolver(BaseSolver):
                 base_url=self.api_base,
                 openrouter_site_url=self.openrouter_site_url or "https://docs.all-hands.dev/",
                 openrouter_app_name=self.openrouter_app_name or "OpenHands",
+                reasoning_effort="xhigh",
             )
 
             mcp_config = {
@@ -222,9 +227,26 @@ class OpenHandsSolver(BaseSolver):
             # Run without confirmation prompts
             conversation.set_confirmation_policy(NeverConfirm())
 
-            # Send message and run
+            # Send message and run. Use SIGALRM so OpenHands obeys the same
+            # solver timeout contract as subprocess-based solvers.
             conversation.send_message(prompt)
-            conversation.run()
+            old_handler = None
+
+            def timeout_handler(signum, frame):
+                raise TimeoutError(
+                    f"OpenHands execution timed out after {self.timeout_seconds}s"
+                )
+
+            if self.timeout_seconds:
+                old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(int(self.timeout_seconds))
+            try:
+                conversation.run()
+            finally:
+                if self.timeout_seconds:
+                    signal.alarm(0)
+                    if old_handler is not None:
+                        signal.signal(signal.SIGALRM, old_handler)
 
             duration = time.time() - start_time
             response_text = "\n".join(output_lines)

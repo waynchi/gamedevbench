@@ -75,6 +75,43 @@ Smoke-test OpenCode from the repo:
 OPENCODE_CONFIG="$PWD/opencode.json" opencode run --format json --dir "$PWD" "Reply with exactly ok"
 ```
 
+## OpenHands GLM 5.2 Setup
+
+OpenHands requires Python 3.12+ in this repo because `openhands-sdk` and `openhands-tools` are only installed for Python 3.12 or newer:
+
+```bash
+uv run --python 3.12 python --version
+uv run python - <<'PY'
+from gamedevbench.src.solver_factory import SolverFactory
+print(SolverFactory.get_available_agents())
+PY
+```
+
+The second command should include `openhands`.
+
+OpenHands uses LiteLLM model names and environment variables, not `opencode.json`. Configure the provider before starting a benchmark. For OpenRouter-style access, set:
+
+```bash
+export OPENROUTER_API_KEY="..."
+export OPENROUTER_API_BASE="https://openrouter.ai/api/v1"
+export OR_SITE_URL="https://github.com/waynechi/gamedevbench"
+export OR_APP_NAME="GameDevBench"
+```
+
+OpenRouter lists GLM 5.2 as `z-ai/glm-5.2`, so the LiteLLM/OpenHands model string is `openrouter/z-ai/glm-5.2`. For example:
+
+```bash
+uv run gamedevbench \
+  --agent openhands \
+  --model openrouter/z-ai/glm-5.2 \
+  --run-name glm52_openhands_full_headless \
+  --skip-display \
+  --parallel 2 \
+  run --task-list tasks.yaml
+```
+
+The OpenRouter model page is https://openrouter.ai/z-ai/glm-5.2. Do not reuse the OpenCode model string `zai-coding-plan/glm-5.2` for OpenHands unless LiteLLM can route that exact provider/model and the matching API key is configured. If OpenHands is run without a matching provider key, tasks fail immediately with messages such as `OPENAI_API_KEY environment variable not set`.
+
 ## Running Benchmarks
 
 Headless GLM 5.2 run through OpenCode:
@@ -127,6 +164,19 @@ uv run gamedevbench \
   --resume \
   --parallel 2 \
   run --task-list tasks.yaml
+```
+
+Rerun the baseline OpenCode tasks that hit solver timeouts with a larger finite solver timeout:
+
+```bash
+uv run gamedevbench \
+  --agent opencode \
+  --run-name glm52_opencode_baseline_timeouts_solver_timeout_1800 \
+  --skip-display \
+  --solver-timeout 1800 \
+  --resume \
+  --parallel 2 \
+  run --task-list task_lists/glm52_baseline_solver_timeouts.yaml
 ```
 
 ## Useful Checks

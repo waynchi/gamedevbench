@@ -25,7 +25,7 @@ class OpenCodeSolver(BaseSolver):
 
     def __init__(
         self,
-        timeout_seconds: int = 600,
+        timeout_seconds: Optional[int] = 600,
         debug: bool = False,
         use_mcp: bool = False,
         model: Optional[str] = None,
@@ -125,7 +125,7 @@ class OpenCodeSolver(BaseSolver):
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=self.timeout_seconds,
+                timeout=self.timeout_seconds if self.timeout_seconds else None,
                 cwd=os.getcwd(),
                 env={
                     **os.environ,
