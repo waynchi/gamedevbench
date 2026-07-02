@@ -5,7 +5,7 @@ This repo is GameDevBench, a Python benchmark runner for Godot tasks. Use this f
 ## Repository Rules
 
 - Work on a branch. Do not commit directly to `main` unless the user explicitly asks.
-- Do not commit benchmark outputs from `results/`, `tasks/test_result/`, or temporary Godot sandboxes.
+- Do not commit per-task benchmark outputs, trajectories, sandbox code, `tasks/test_result/`, or temporary Godot sandboxes. Only commit aggregate `final_results.json` files when the user explicitly asks for benchmark results to be tracked.
 - Prefer `uv run ...` for Python entry points so the repo environment is used consistently.
 - Use `rg` for searches.
 
@@ -139,6 +139,8 @@ uv run gamedevbench \
 
 Parallelism is supported for task-list and all-task runs. Start at `--parallel 2` for OpenCode GLM 5.2, then increase only if the provider is stable.
 
+The default solver timeout is 600 seconds / 10 minutes. Use `--solver-timeout <seconds>` to override it for a run, or `--solver-timeout 0` to disable only the solver timeout. Validation still uses the benchmark's built-in validation timeout.
+
 Headless GLM 5.2 run with both runtime-video prompt guidance and MCP enabled:
 
 ```bash
@@ -164,19 +166,6 @@ uv run gamedevbench \
   --resume \
   --parallel 2 \
   run --task-list tasks.yaml
-```
-
-Rerun the baseline OpenCode tasks that hit solver timeouts with a larger finite solver timeout:
-
-```bash
-uv run gamedevbench \
-  --agent opencode \
-  --run-name glm52_opencode_baseline_timeouts_solver_timeout_1800 \
-  --skip-display \
-  --solver-timeout 1800 \
-  --resume \
-  --parallel 2 \
-  run --task-list task_lists/glm52_baseline_solver_timeouts.yaml
 ```
 
 ## Useful Checks
