@@ -43,6 +43,7 @@ def _run_task_worker(config: Dict) -> Dict:
         use_runtime_video=config["use_runtime_video"],
         run_name=config["run_name"],
         parallel=1,
+        solver_timeout_seconds=config["solver_timeout_seconds"],
     )
     return runner.run_benchmark(config["task_name"])
 
@@ -61,6 +62,7 @@ class GodotBenchmarkRunner:
         use_runtime_video: bool = False,
         run_name: Optional[str] = None,
         parallel: int = 1,
+        solver_timeout_seconds: Optional[int] = TIMEOUT,
     ):
         """
         Initialize the benchmark runner.
@@ -77,6 +79,7 @@ class GodotBenchmarkRunner:
             use_runtime_video: Enable runtime video mode (appends Godot runtime instructions to prompts)
             run_name: Optional name used to isolate result files for this run
             parallel: Number of tasks to run concurrently when running a task list
+            solver_timeout_seconds: Maximum solver time in seconds; 0/None disables
         """
         self.godot_path = GODOT_EXEC_PATH
         if use_gt:
@@ -109,6 +112,7 @@ class GodotBenchmarkRunner:
         self.skip_display = skip_display
         self.use_runtime_video = use_runtime_video
         self.parallel = max(1, parallel)
+        self.solver_timeout_seconds = solver_timeout_seconds
 
         # Validate agent configuration early if agent is specified
         if self.agent:
@@ -873,7 +877,7 @@ script = ExtResource("test_script")
                     debug=self.debug,
                     model=self.model,
                     use_mcp=self.use_mcp,
-                    timeout_seconds=TIMEOUT,
+                    timeout_seconds=self.solver_timeout_seconds,
                     use_runtime_video=self.use_runtime_video,
                 )
                 solver_result = solver.solve_task()
@@ -1105,6 +1109,7 @@ script = ExtResource("test_script")
             "skip_display": self.skip_display,
             "use_runtime_video": self.use_runtime_video,
             "run_name": self.run_name,
+            "solver_timeout_seconds": self.solver_timeout_seconds,
         }
 
         task_iter = iter(tasks)
@@ -1624,6 +1629,12 @@ def main():
         type=int,
         default=1,
     )
+    parser.add_argument(
+        "--solver-timeout",
+        help="Maximum solver time in seconds; use 0 to disable the solver timeout. Validation still uses the built-in timeout.",
+        type=int,
+        default=TIMEOUT,
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # List command
@@ -1669,6 +1680,7 @@ def main():
         use_runtime_video=args.use_runtime_video,
         run_name=args.run_name,
         parallel=args.parallel,
+        solver_timeout_seconds=args.solver_timeout if args.solver_timeout > 0 else None,
     )
 
     if args.command == "list":
