@@ -22,7 +22,7 @@ class MiniSweSolver(BaseSolver):
 
     def __init__(
         self,
-        timeout_seconds: int = 300,
+        timeout_seconds: int = 600,
         debug: bool = False,
         model: str = "claude",
         use_mcp: bool = False,
