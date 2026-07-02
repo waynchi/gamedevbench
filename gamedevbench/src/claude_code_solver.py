@@ -43,7 +43,7 @@ class ClaudeCodeSolver(BaseSolver):
 
     def __init__(
         self,
-        timeout_seconds: int = 300,
+        timeout_seconds: int = 600,
         debug: bool = False,
         use_mcp: bool = False,
         use_runtime_video: bool = False,
