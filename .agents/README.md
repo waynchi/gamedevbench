@@ -141,6 +141,24 @@ Parallelism is supported for task-list and all-task runs. Start at `--parallel 2
 
 The default solver timeout is 600 seconds / 10 minutes. Use `--solver-timeout <seconds>` to override it for a run, or `--solver-timeout 0` to disable only the solver timeout. Validation still uses the benchmark's built-in validation timeout.
 
+## Visual Feedback Modes
+
+Prefer runtime-video for remote-machine runs unless the user specifically asks for MCP screenshots. Runtime-video works on a remote machine because it only adds prompt instructions that tell the model to run Godot from the shell, record frames or video with `--write-movie`, and inspect the generated image/video files. This does not require an editor window on the local desktop.
+
+MCP screenshot mode can also work, but it requires more setup: the target agent must support MCP, the local `gamedevbench-mcp` server must be configured for that agent, and the remote machine must have the display/Godot screenshot path wired correctly. When in doubt, run with `--use-runtime-video` first. In prior runs, runtime-video alone often performed as well as runtime-video plus screenshot MCP.
+
+Codex GPT runtime-video run on a remote machine:
+
+```bash
+uv run gamedevbench \
+  --agent codex \
+  --model gpt-5.5 \
+  --run-name gpt55_codex_runtime_video_full_333 \
+  --use-runtime-video \
+  --parallel 2 \
+  run --task-list tasks.yaml
+```
+
 Headless GLM 5.2 run with both runtime-video prompt guidance and MCP enabled:
 
 ```bash

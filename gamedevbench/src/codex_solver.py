@@ -28,7 +28,7 @@ class CodexSolver(BaseSolver):
         debug: bool = False,
         use_mcp: bool = False,
         model: Optional[str] = None,
-        approval_policy: str = "never",      # untrusted | on-request | never
+        approval_policy: str = "never",
         sandbox: str = "danger-full-access",  # read-only | workspace-write | danger-full-access
         use_runtime_video: bool = False,
     ):
@@ -170,15 +170,21 @@ args = ["run", "gamedevbench-mcp"]
             # Build codex exec command
             cmd = ["codex"]
 
-            if self.approval_policy:
-                cmd.extend(["-a", self.approval_policy])
-
             cmd.extend(["exec", "--skip-git-repo-check", "--json"])
+
+            if self.approval_policy == "never" and self.sandbox == "danger-full-access":
+                cmd.append("--dangerously-bypass-approvals-and-sandbox")
 
             if self.model:
                 cmd.extend(["-m", self.model])
 
-            cmd.extend(["-s", self.sandbox, "-C", str(os.getcwd()), prompt])
+            if not (
+                self.approval_policy == "never"
+                and self.sandbox == "danger-full-access"
+            ):
+                cmd.extend(["-s", self.sandbox])
+
+            cmd.extend(["-C", str(os.getcwd()), prompt])
 
             if self.debug:
                 cmd_str = " ".join([c if " " not in c else f'"{c}"' for c in cmd[:-1]])
