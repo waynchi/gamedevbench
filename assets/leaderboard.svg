@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="535" viewBox="0 0 960 535" role="img" aria-labelledby="title desc">
+  <title id="title">GameDevBench leaderboard</title>
+  <desc id="desc">Pass at 1 leaderboard for GameDevBench models and harnesses on 333 tasks.</desc>
+  <style>
+    .bg { fill: #ffffff; }
+    .panel { fill: #ffffff; stroke: #d8d8d8; }
+    .row-line { stroke: #efefef; stroke-width: 1; }
+    .new-row { fill: #f0f8f6; }
+    .new-edge { fill: #0f766e; }
+    .label { font: 700 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #111111; }
+    .harness { font: 400 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #6b7280; }
+    .score { font: 700 15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #111111; text-anchor: end; }
+    .ci { font: 400 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #6b7280; }
+    .axis { font: 400 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #111111; text-anchor: middle; }
+    .track { fill: #f3f4f6; }
+    .err { stroke: #111111; stroke-width: 1.5; }
+    .badge-box { fill: #e6f4f1; stroke: #7db8ad; }
+    .badge-text { font: 700 9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #0f766e; text-anchor: middle; }
+  </style>
+
+  <rect class="bg" width="960" height="535"/>
+  <rect class="panel" x="20" y="20" width="920" height="480"/>
+
+  <g transform="translate(0,0)">
+    <rect class="new-row" x="35" y="40" width="890" height="32"/>
+    <rect class="new-edge" x="35" y="40" width="3" height="32"/>
+    <text class="label" x="52" y="61">AI claude-opus-4-8</text>
+    <text class="harness" x="205" y="61">[Claude Code]</text>
+    <rect class="badge-box" x="307" y="48" width="28" height="16" rx="2"/>
+    <text class="badge-text" x="321" y="60">NEW</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="223.6" height="16" fill="#d97757"/>
+    <line class="err" x1="562.4" y1="56" x2="604.8" y2="56"/>
+    <line class="err" x1="562.4" y1="51" x2="562.4" y2="61"/>
+    <line class="err" x1="604.8" y1="51" x2="604.8" y2="61"/>
+    <text class="score" x="860" y="61">55.9% <tspan class="ci">&#177;5.3</tspan></text>
+  </g>
+
+  <g transform="translate(0,38)">
+    <rect class="new-row" x="35" y="40" width="890" height="32"/>
+    <rect class="new-edge" x="35" y="40" width="3" height="32"/>
+    <text class="label" x="52" y="61">GPT gpt-5.5</text>
+    <text class="harness" x="160" y="61">[Codex]</text>
+    <rect class="badge-box" x="220" y="48" width="28" height="16" rx="2"/>
+    <text class="badge-text" x="234" y="60">NEW</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="218.8" height="16" fill="#10a37f"/>
+    <line class="err" x1="557.6" y1="56" x2="600.0" y2="56"/>
+    <line class="err" x1="557.6" y1="51" x2="557.6" y2="61"/>
+    <line class="err" x1="600.0" y1="51" x2="600.0" y2="61"/>
+    <text class="score" x="860" y="61">54.7% <tspan class="ci">&#177;5.3</tspan></text>
+  </g>
+
+  <g transform="translate(0,76)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">Gemini gemini-3-pro-preview</text>
+    <text class="harness" x="272" y="61">[Gemini CLI]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="215.2" height="16" fill="#4285f4"/>
+    <line class="err" x1="553.6" y1="56" x2="596.8" y2="56"/>
+    <line class="err" x1="553.6" y1="51" x2="553.6" y2="61"/>
+    <line class="err" x1="596.8" y1="51" x2="596.8" y2="61"/>
+    <text class="score" x="860" y="61">53.8% <tspan class="ci">&#177;5.4</tspan></text>
+  </g>
+
+  <g transform="translate(0,114)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">GPT gpt-5.4</text>
+    <text class="harness" x="160" y="61">[Codex]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="208.0" height="16" fill="#10a37f"/>
+    <line class="err" x1="546.4" y1="56" x2="589.6" y2="56"/>
+    <line class="err" x1="546.4" y1="51" x2="546.4" y2="61"/>
+    <line class="err" x1="589.6" y1="51" x2="589.6" y2="61"/>
+    <text class="score" x="860" y="61">52.0% <tspan class="ci">&#177;5.4</tspan></text>
+  </g>
+
+  <g transform="translate(0,152)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">Gemini gemini-3-flash-preview</text>
+    <text class="harness" x="288" y="61">[Gemini CLI]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="187.2" height="16" fill="#4285f4"/>
+    <line class="err" x1="525.6" y1="56" x2="568.8" y2="56"/>
+    <line class="err" x1="525.6" y1="51" x2="525.6" y2="61"/>
+    <line class="err" x1="568.8" y1="51" x2="568.8" y2="61"/>
+    <text class="score" x="860" y="61">46.8% <tspan class="ci">&#177;5.4</tspan></text>
+  </g>
+
+  <g transform="translate(0,190)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">GPT gpt-5.4-mini</text>
+    <text class="harness" x="200" y="61">[Codex]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="172.8" height="16" fill="#10a37f"/>
+    <line class="err" x1="511.6" y1="56" x2="554.0" y2="56"/>
+    <line class="err" x1="511.6" y1="51" x2="511.6" y2="61"/>
+    <line class="err" x1="554.0" y1="51" x2="554.0" y2="61"/>
+    <text class="score" x="860" y="61">43.2% <tspan class="ci">&#177;5.3</tspan></text>
+  </g>
+
+  <g transform="translate(0,228)">
+    <rect class="new-row" x="35" y="40" width="890" height="32"/>
+    <rect class="new-edge" x="35" y="40" width="3" height="32"/>
+    <text class="label" x="52" y="61">Z.ai glm-5.2</text>
+    <text class="harness" x="168" y="61">[OpenCode]</text>
+    <rect class="badge-box" x="250" y="48" width="28" height="16" rx="2"/>
+    <text class="badge-text" x="264" y="60">NEW</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="153.6" height="16" fill="#0f766e"/>
+    <line class="err" x1="492.8" y1="56" x2="534.4" y2="56"/>
+    <line class="err" x1="492.8" y1="51" x2="492.8" y2="61"/>
+    <line class="err" x1="534.4" y1="51" x2="534.4" y2="61"/>
+    <text class="score" x="860" y="61">38.4% <tspan class="ci">&#177;5.2</tspan></text>
+  </g>
+
+  <g transform="translate(0,266)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">AI claude-sonnet-4-5</text>
+    <text class="harness" x="225" y="61">[Claude Code]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="139.2" height="16" fill="#d97757"/>
+    <line class="err" x1="478.8" y1="56" x2="519.6" y2="56"/>
+    <line class="err" x1="478.8" y1="51" x2="478.8" y2="61"/>
+    <line class="err" x1="519.6" y1="51" x2="519.6" y2="61"/>
+    <text class="score" x="860" y="61">34.8% <tspan class="ci">&#177;5.1</tspan></text>
+  </g>
+
+  <g transform="translate(0,304)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">Moonshot kimi-k2.5</text>
+    <text class="harness" x="214" y="61">[OpenHands]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="82.8" height="16" fill="#cf3e3e"/>
+    <line class="err" x1="425.2" y1="56" x2="460.4" y2="56"/>
+    <line class="err" x1="425.2" y1="51" x2="425.2" y2="61"/>
+    <line class="err" x1="460.4" y1="51" x2="460.4" y2="61"/>
+    <text class="score" x="860" y="61">20.7% <tspan class="ci">&#177;4.4</tspan></text>
+  </g>
+
+  <g transform="translate(0,342)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">AI claude-haiku-4-5</text>
+    <text class="harness" x="218" y="61">[Claude Code]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="74.4" height="16" fill="#d97757"/>
+    <line class="err" x1="417.6" y1="56" x2="451.2" y2="56"/>
+    <line class="err" x1="417.6" y1="51" x2="417.6" y2="61"/>
+    <line class="err" x1="451.2" y1="51" x2="451.2" y2="61"/>
+    <text class="score" x="860" y="61">18.6% <tspan class="ci">&#177;4.2</tspan></text>
+  </g>
+
+  <g transform="translate(0,380)">
+    <line class="row-line" x1="35" y1="40" x2="925" y2="40"/>
+    <text class="label" x="52" y="61">Qwen qwen3.5-397b</text>
+    <text class="harness" x="215" y="61">[OpenHands]</text>
+    <rect class="track" x="360" y="48" width="400" height="16"/>
+    <rect x="360" y="48" width="21.6" height="16" fill="#7952b3"/>
+    <line class="err" x1="372.0" y1="56" x2="391.2" y2="56"/>
+    <line class="err" x1="372.0" y1="51" x2="372.0" y2="61"/>
+    <line class="err" x1="391.2" y1="51" x2="391.2" y2="61"/>
+    <text class="score" x="860" y="61">5.4% <tspan class="ci">&#177;2.4</tspan></text>
+  </g>
+
+  <g transform="translate(360,474)">
+    <text class="axis" x="0" y="0">0%</text>
+    <text class="axis" x="100" y="0">25%</text>
+    <text class="axis" x="200" y="0">50%</text>
+    <text class="axis" x="300" y="0">75%</text>
+    <text class="axis" x="400" y="0">100%</text>
+  </g>
+  <text class="harness" x="20" y="525">pass@1 on all 333 tasks. Error bars are 95% confidence intervals.</text>
+</svg>

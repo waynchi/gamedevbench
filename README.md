@@ -30,7 +30,7 @@
 
 Despite rapid progress on coding agents, progress on their multimodal counterparts has lagged behind. A key challenge is the scarcity of evaluation testbeds that combine the complexity of software development with the need for deep multimodal understanding. Game development provides such a testbed as agents must navigate large, dense codebases while manipulating intrinsically multimodal assets such as shaders, sprites, and animations within a visual game scene.
 
-We present **GameDevBench**, the first benchmark for evaluating agents on game development tasks. GameDevBench consists of 333 tasks derived from web and video tutorials. Tasks require significant multimodal understanding and are complex — the average solution requires over three times the lines of code and file changes compared to prior software development benchmarks. Agents struggle with game development, with the best agent and method solving only **53.8%** of tasks. We find a strong correlation between perceived task difficulty and multimodal complexity, with average success rate dropping from **51.4%** on gameplay-oriented tasks to **33.0%** on 2D graphics tasks.
+We present **GameDevBench**, the first benchmark for evaluating agents on game development tasks. GameDevBench consists of 333 tasks derived from web and video tutorials. Tasks require significant multimodal understanding and are complex — the average solution requires over three times the lines of code and file changes compared to prior software development benchmarks. Agents struggle with game development, with the best agent and method solving only **55.9%** of tasks. We find a strong correlation between perceived task difficulty and multimodal complexity, with average success rate dropping from **51.4%** on gameplay-oriented tasks to **33.0%** on 2D graphics tasks.
 
 To improve multimodal capability, we introduce two simple image and video-based feedback mechanisms for agents. Despite their simplicity, these methods consistently improve performance, increasing GPT-5.4's performance from **41.1%** to **52.0%** when given visual feedback. We release GameDevBench publicly to support further research into agentic game development.
 
@@ -107,21 +107,25 @@ MCP screenshot functionality (`--enable-mcp`) requires **macOS** with AppleScrip
 
 The official ICML 2026 camera-ready results are included in [`results/`](results/) — one JSON per (agent, model, feedback) configuration with per-task pass/fail status, token usage, costs, and durations, plus a [`leaderboard.csv`](results/leaderboard.csv) summary. New benchmark runs are also saved to `results/`.
 
-| Rank | Model | Harness | Feedback | pass@1 (%) |
-|-----:|-------|---------|----------|-----------:|
-| 1 | gemini-3-pro-preview | Gemini CLI | Screenshot + Video | **53.8** |
-| 2 | gpt-5.4 | Codex | Screenshot + Video | 52.0 |
-| 3 | gemini-3-flash-preview | Gemini CLI | Video | 46.9 |
-| 4 | gpt-5.4-mini | Codex | Video | 43.2 |
-| 5 | gpt-5.4-mini | OpenHands | Baseline | 38.4 |
-| 6 | claude-sonnet-4-5 | Claude Code | Screenshot + Video | 34.8 |
-| 7 | gemini-3-flash-preview | OpenHands | Screenshot + Video | 31.8 |
-| 8 | kimi-k2.5 | OpenHands | Screenshot + Video | 20.7 |
-| 9 | claude-haiku-4-5 | Claude Code | Video | 18.6 |
-| 10 | claude-haiku-4-5 | OpenHands | Screenshot + Video | 17.7 |
-| 11 | qwen3.5-397b | OpenHands | Baseline | 5.4 |
+<p align="center">
+  <img src="assets/leaderboard.svg" alt="GameDevBench leaderboard" width="95%">
+</p>
 
-*Best-performing multimodal feedback configuration per model + harness pair. Screenshot = editor screenshot MCP server; Video = runtime gameplay video instructions. See the [project page](https://waynechi.com/gamedevbench) for the full leaderboard.*
+| Rank | Model | Harness | pass@1 (%) | 95% CI |
+|-----:|-------|---------|-----------:|-------:|
+| 1 | claude-opus-4-8 <sub>New</sub> | Claude Code | **55.9** | ±5.3 |
+| 2 | gpt-5.5 <sub>New</sub> | Codex | 54.7 | ±5.3 |
+| 3 | gemini-3-pro-preview | Gemini CLI | 53.8 | ±5.4 |
+| 4 | gpt-5.4 | Codex | 52.0 | ±5.4 |
+| 5 | gemini-3-flash-preview | Gemini CLI | 46.8 | ±5.4 |
+| 6 | gpt-5.4-mini | Codex | 43.2 | ±5.3 |
+| 7 | glm-5.2 <sub>New</sub> | OpenCode | 38.4 | ±5.2 |
+| 8 | claude-sonnet-4-5 | Claude Code | 34.8 | ±5.1 |
+| 9 | kimi-k2.5 | OpenHands | 20.7 | ±4.4 |
+| 10 | claude-haiku-4-5 | Claude Code | 18.6 | ±4.2 |
+| 11 | qwen3.5-397b | OpenHands | 5.4 | ±2.4 |
+
+*Best-performing multimodal feedback configuration per model, in its best harness. Scores are pass@1 on all 333 tasks; error bars are 95% confidence intervals. See the [project page](https://waynechi.com/gamedevbench) for the full leaderboard.*
 
 ## Citation
 
