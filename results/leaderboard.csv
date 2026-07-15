@@ -1,7 +1,7 @@
 rank,model,harness,pass_at_1_percent,ci_95_percent,new
-1,gpt-5.6-sol xhigh,Codex,63.7,5.2,true
-2,gpt-5.6-sol high,Codex,63.1,5.2,true
-3,gpt-5.6-sol medium rerun,Codex,58.6,5.3,true
+1,gpt-5.6-sol (xhigh),Codex,63.7,5.2,true
+2,gpt-5.6-sol (high),Codex,63.1,5.2,true
+3,gpt-5.6-sol (medium),Codex,58.6,5.3,true
 4,claude-opus-4-8,Claude Code,55.9,5.3,false
 5,gpt-5.5,Codex,54.7,5.3,false
 6,gemini-3-pro-preview,Gemini CLI,53.8,5.4,false

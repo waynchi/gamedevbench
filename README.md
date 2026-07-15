@@ -113,9 +113,9 @@ The official ICML 2026 camera-ready results are included in [`results/`](results
 
 | Rank | Model | Harness | pass@1 (%) | 95% CI |
 |-----:|-------|---------|-----------:|-------:|
-| 1 | gpt-5.6-sol xhigh <sub>New</sub> | Codex | **63.7** | ±5.2 |
-| 2 | gpt-5.6-sol high <sub>New</sub> | Codex | 63.1 | ±5.2 |
-| 3 | gpt-5.6-sol medium rerun <sub>New</sub> | Codex | 58.6 | ±5.3 |
+| 1 | gpt-5.6-sol (xhigh) <sub>New</sub> | Codex | **63.7** | ±5.2 |
+| 2 | gpt-5.6-sol (high) <sub>New</sub> | Codex | 63.1 | ±5.2 |
+| 3 | gpt-5.6-sol (medium) <sub>New</sub> | Codex | 58.6 | ±5.3 |
 | 4 | claude-opus-4-8 | Claude Code | 55.9 | ±5.3 |
 | 5 | gpt-5.5 | Codex | 54.7 | ±5.3 |
 | 6 | gemini-3-pro-preview | Gemini CLI | 53.8 | ±5.4 |

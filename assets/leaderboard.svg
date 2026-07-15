@@ -21,7 +21,7 @@
   <rect class="panel" x="20" y="20" width="920" height="602"/>
   <rect class="new-row" x="35" y="40" width="890" height="32"/>
   <rect class="new-edge" x="35" y="40" width="3" height="32"/>
-  <text class="label" x="52" y="61">GPT gpt-5.6-sol xhigh</text>
+  <text class="label" x="52" y="61">GPT gpt-5.6-sol (xhigh)</text>
   <text class="harness" x="217" y="61">[Codex]</text>
   <rect class="badge-box" x="277" y="48" width="28" height="16" rx="2"/>
   <text class="badge-text" x="291" y="60">NEW</text>
@@ -33,7 +33,7 @@
   <text class="score" x="860" y="61">63.7% <tspan class="ci">&#177;5.2</tspan></text>
   <rect class="new-row" x="35" y="78" width="890" height="32"/>
   <rect class="new-edge" x="35" y="78" width="3" height="32"/>
-  <text class="label" x="52" y="99">GPT gpt-5.6-sol high</text>
+  <text class="label" x="52" y="99">GPT gpt-5.6-sol (high)</text>
   <text class="harness" x="210" y="99">[Codex]</text>
   <rect class="badge-box" x="270" y="86" width="28" height="16" rx="2"/>
   <text class="badge-text" x="284" y="98">NEW</text>
@@ -45,7 +45,7 @@
   <text class="score" x="860" y="99">63.1% <tspan class="ci">&#177;5.2</tspan></text>
   <rect class="new-row" x="35" y="116" width="890" height="32"/>
   <rect class="new-edge" x="35" y="116" width="3" height="32"/>
-  <text class="label" x="52" y="137">GPT gpt-5.6-sol medium rerun</text>
+  <text class="label" x="52" y="137">GPT gpt-5.6-sol (medium)</text>
   <text class="harness" x="266" y="137">[Codex]</text>
   <rect class="badge-box" x="326" y="124" width="28" height="16" rx="2"/>
   <text class="badge-text" x="340" y="136">NEW</text>
