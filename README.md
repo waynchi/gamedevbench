@@ -30,6 +30,16 @@
 
 <br>
 
+## Results
+
+The official ICML 2026 camera-ready results are available in [`results/`](results/). Select the leaderboard to view the full results on the project website.
+
+<p align="center">
+  <a href="https://waynechi.com/gamedevbench#leaderboard">
+    <img src="assets/leaderboard.svg" alt="GameDevBench leaderboard" width="95%">
+  </a>
+</p>
+
 ## Abstract
 
 Despite rapid progress on coding agents, progress on their multimodal counterparts has lagged behind. A key challenge is the scarcity of evaluation testbeds that combine the complexity of software development with the need for deep multimodal understanding. Game development provides such a testbed as agents must navigate large, dense codebases while manipulating intrinsically multimodal assets such as shaders, sprites, and animations within a visual game scene.
@@ -106,35 +116,6 @@ uv run python gamedevbench/src/benchmark_runner.py \
 ### Platform Notes
 
 MCP screenshot functionality (`--enable-mcp`) requires **macOS** with AppleScript. Set `GODOT_SCREENSHOT_DISPLAY` to the correct display number.
-
-## Results
-
-The official ICML 2026 camera-ready results are included in [`results/`](results/) — one JSON per (agent, model, feedback) configuration with per-task pass/fail status, token usage, costs, and durations, plus a [`leaderboard.csv`](results/leaderboard.csv) summary. New benchmark runs are also saved to `results/`.
-
-<p align="center">
-  <a href="https://waynechi.com/gamedevbench#leaderboard">
-    <img src="assets/leaderboard.svg" alt="GameDevBench leaderboard" width="95%">
-  </a>
-</p>
-
-| Rank | Model | Harness | pass@1 (%) | 95% CI |
-|-----:|-------|---------|-----------:|-------:|
-| 1 | gpt-5.6-sol (xhigh) <sub>New</sub> | Codex | **63.7** | ±5.2 |
-| 2 | gpt-5.6-sol (high) <sub>New</sub> | Codex | 63.1 | ±5.2 |
-| 3 | gpt-5.6-sol (medium) <sub>New</sub> | Codex | 58.6 | ±5.3 |
-| 4 | claude-opus-4-8 | Claude Code | 55.9 | ±5.3 |
-| 5 | gpt-5.5 | Codex | 54.7 | ±5.3 |
-| 6 | gemini-3-pro-preview | Gemini CLI | 53.8 | ±5.4 |
-| 7 | gpt-5.4 | Codex | 52.0 | ±5.4 |
-| 8 | gemini-3-flash-preview | Gemini CLI | 46.8 | ±5.4 |
-| 9 | gpt-5.4-mini | Codex | 43.2 | ±5.3 |
-| 10 | glm-5.2 | OpenCode | 38.4 | ±5.2 |
-| 11 | claude-sonnet-4-5 | Claude Code | 34.8 | ±5.1 |
-| 12 | kimi-k2.5 | OpenHands | 20.7 | ±4.4 |
-| 13 | claude-haiku-4-5 | Claude Code | 18.6 | ±4.2 |
-| 14 | qwen3.5-397b | OpenHands | 5.4 | ±2.4 |
-
-*Best-performing multimodal feedback configuration per model, in its best harness. Scores are pass@1 on all 333 tasks; error bars are 95% confidence intervals. See the [project website](https://waynechi.com/gamedevbench#leaderboard) for the full leaderboard.*
 
 ## Citation
 
