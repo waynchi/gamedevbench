@@ -36,7 +36,7 @@ The official ICML 2026 camera-ready results are available in [`results/`](result
 
 <p align="center">
   <a href="https://waynechi.com/gamedevbench#leaderboard">
-    <img src="assets/leaderboard.svg" alt="GameDevBench leaderboard" width="95%">
+    <img src="assets/leaderboard.png" alt="GameDevBench leaderboard" width="95%">
   </a>
 </p>
 
