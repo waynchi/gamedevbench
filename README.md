@@ -20,6 +20,10 @@
 
 *The first benchmark for evaluating LLM agents on game development tasks in a modern game engine &mdash; 333 tasks, published at ICML 2026.*
 
+<strong><a href="https://waynechi.com/gamedevbench">Project website and full leaderboard</a></strong>
+
+<br>
+
 <img src="assets/taxonomy-examples.png" alt="GameDevBench task taxonomy" width="95%">
 
 </div>
@@ -30,7 +34,7 @@
 
 Despite rapid progress on coding agents, progress on their multimodal counterparts has lagged behind. A key challenge is the scarcity of evaluation testbeds that combine the complexity of software development with the need for deep multimodal understanding. Game development provides such a testbed as agents must navigate large, dense codebases while manipulating intrinsically multimodal assets such as shaders, sprites, and animations within a visual game scene.
 
-We present **GameDevBench**, the first benchmark for evaluating agents on game development tasks. GameDevBench consists of 333 tasks derived from web and video tutorials. Tasks require significant multimodal understanding and are complex — the average solution requires over three times the lines of code and file changes compared to prior software development benchmarks. Agents struggle with game development, with the best agent and method solving only **53.8%** of tasks. We find a strong correlation between perceived task difficulty and multimodal complexity, with average success rate dropping from **51.4%** on gameplay-oriented tasks to **33.0%** on 2D graphics tasks.
+We present **GameDevBench**, the first benchmark for evaluating agents on game development tasks. GameDevBench consists of 333 tasks derived from web and video tutorials. Tasks require significant multimodal understanding and are complex — the average solution requires over three times the lines of code and file changes compared to prior software development benchmarks. Agents struggle with game development, with the best agent and method solving only **63.7%** of tasks. We find a strong correlation between perceived task difficulty and multimodal complexity, with average success rate dropping from **51.4%** on gameplay-oriented tasks to **33.0%** on 2D graphics tasks.
 
 To improve multimodal capability, we introduce two simple image and video-based feedback mechanisms for agents. Despite their simplicity, these methods consistently improve performance, increasing GPT-5.4's performance from **41.1%** to **52.0%** when given visual feedback. We release GameDevBench publicly to support further research into agentic game development.
 
@@ -107,21 +111,30 @@ MCP screenshot functionality (`--enable-mcp`) requires **macOS** with AppleScrip
 
 The official ICML 2026 camera-ready results are included in [`results/`](results/) — one JSON per (agent, model, feedback) configuration with per-task pass/fail status, token usage, costs, and durations, plus a [`leaderboard.csv`](results/leaderboard.csv) summary. New benchmark runs are also saved to `results/`.
 
-| Rank | Model | Harness | Feedback | pass@1 (%) |
-|-----:|-------|---------|----------|-----------:|
-| 1 | gemini-3-pro-preview | Gemini CLI | Screenshot + Video | **53.8** |
-| 2 | gpt-5.4 | Codex | Screenshot + Video | 52.0 |
-| 3 | gemini-3-flash-preview | Gemini CLI | Video | 46.9 |
-| 4 | gpt-5.4-mini | Codex | Video | 43.2 |
-| 5 | gpt-5.4-mini | OpenHands | Baseline | 38.4 |
-| 6 | claude-sonnet-4-5 | Claude Code | Screenshot + Video | 34.8 |
-| 7 | gemini-3-flash-preview | OpenHands | Screenshot + Video | 31.8 |
-| 8 | kimi-k2.5 | OpenHands | Screenshot + Video | 20.7 |
-| 9 | claude-haiku-4-5 | Claude Code | Video | 18.6 |
-| 10 | claude-haiku-4-5 | OpenHands | Screenshot + Video | 17.7 |
-| 11 | qwen3.5-397b | OpenHands | Baseline | 5.4 |
+<p align="center">
+  <a href="https://waynechi.com/gamedevbench#leaderboard">
+    <img src="assets/leaderboard.svg" alt="GameDevBench leaderboard" width="95%">
+  </a>
+</p>
 
-*Best-performing multimodal feedback configuration per model + harness pair. Screenshot = editor screenshot MCP server; Video = runtime gameplay video instructions. See the [project page](https://waynechi.com/gamedevbench) for the full leaderboard.*
+| Rank | Model | Harness | pass@1 (%) | 95% CI |
+|-----:|-------|---------|-----------:|-------:|
+| 1 | gpt-5.6-sol (xhigh) <sub>New</sub> | Codex | **63.7** | ±5.2 |
+| 2 | gpt-5.6-sol (high) <sub>New</sub> | Codex | 63.1 | ±5.2 |
+| 3 | gpt-5.6-sol (medium) <sub>New</sub> | Codex | 58.6 | ±5.3 |
+| 4 | claude-opus-4-8 | Claude Code | 55.9 | ±5.3 |
+| 5 | gpt-5.5 | Codex | 54.7 | ±5.3 |
+| 6 | gemini-3-pro-preview | Gemini CLI | 53.8 | ±5.4 |
+| 7 | gpt-5.4 | Codex | 52.0 | ±5.4 |
+| 8 | gemini-3-flash-preview | Gemini CLI | 46.8 | ±5.4 |
+| 9 | gpt-5.4-mini | Codex | 43.2 | ±5.3 |
+| 10 | glm-5.2 | OpenCode | 38.4 | ±5.2 |
+| 11 | claude-sonnet-4-5 | Claude Code | 34.8 | ±5.1 |
+| 12 | kimi-k2.5 | OpenHands | 20.7 | ±4.4 |
+| 13 | claude-haiku-4-5 | Claude Code | 18.6 | ±4.2 |
+| 14 | qwen3.5-397b | OpenHands | 5.4 | ±2.4 |
+
+*Best-performing multimodal feedback configuration per model, in its best harness. Scores are pass@1 on all 333 tasks; error bars are 95% confidence intervals. See the [project website](https://waynechi.com/gamedevbench#leaderboard) for the full leaderboard.*
 
 ## Citation
 
