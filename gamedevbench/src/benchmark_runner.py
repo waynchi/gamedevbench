@@ -44,6 +44,7 @@ def _run_task_worker(config: Dict) -> Dict:
         run_name=config["run_name"],
         parallel=1,
         solver_timeout_seconds=config["solver_timeout_seconds"],
+        effort=config["effort"],
     )
     return runner.run_benchmark(config["task_name"])
 
@@ -63,6 +64,7 @@ class GodotBenchmarkRunner:
         run_name: Optional[str] = None,
         parallel: int = 1,
         solver_timeout_seconds: Optional[int] = TIMEOUT,
+        effort: Optional[str] = None,
     ):
         """
         Initialize the benchmark runner.
@@ -80,6 +82,7 @@ class GodotBenchmarkRunner:
             run_name: Optional name used to isolate result files for this run
             parallel: Number of tasks to run concurrently when running a task list
             solver_timeout_seconds: Maximum solver time in seconds; 0/None disables
+            effort: Provider-native reasoning effort override
         """
         self.godot_path = GODOT_EXEC_PATH
         if use_gt:
@@ -113,6 +116,7 @@ class GodotBenchmarkRunner:
         self.use_runtime_video = use_runtime_video
         self.parallel = max(1, parallel)
         self.solver_timeout_seconds = solver_timeout_seconds
+        self.effort = effort
 
         # Validate agent configuration early if agent is specified
         if self.agent:
@@ -154,11 +158,20 @@ class GodotBenchmarkRunner:
                 f"MCP-capable solvers: {', '.join(mcp_capable)}"
             )
 
+        if self.effort and not solver_info["supports_effort"]:
+            effort_capable = SolverFactory.get_effort_capable_solvers()
+            raise ValueError(
+                f"Agent '{self.agent}' does not support --effort. "
+                "Choose an effort-capable solver "
+                f"({', '.join(effort_capable)}) or omit the flag."
+            )
+
         # Provide informational message in debug mode
         if self.debug:
             print(f"Agent: {self.agent}")
             print(f"  - MCP Support: {solver_info['supports_mcp']}")
             print(f"  - System Prompt Support: {solver_info['supports_system_prompt']}")
+            print(f"  - Effort Support: {solver_info['supports_effort']}")
             if self.use_mcp:
                 print(f"  - MCP Enabled: Yes")
 
@@ -475,6 +488,7 @@ script = ExtResource("test_script")
                     "model": self.model,
                     "use_mcp": self.use_mcp,
                     "use_runtime_video": self.use_runtime_video,
+                    "effort": self.effort,
                     "skip_display": self.skip_display,
                     "debug": self.debug,
                 }
@@ -496,6 +510,7 @@ script = ExtResource("test_script")
             "model": self.model,
             "use_mcp": self.use_mcp,
             "use_runtime_video": self.use_runtime_video,
+            "effort": self.effort,
             "skip_display": self.skip_display,
             "debug": self.debug,
         }
@@ -821,6 +836,7 @@ script = ExtResource("test_script")
                 "model": self.model,
                 "use_mcp": self.use_mcp,
                 "use_runtime_video": self.use_runtime_video,
+                "effort": self.effort,
                 "skip_display": self.skip_display,
                 "debug": self.debug,
             }
@@ -879,6 +895,7 @@ script = ExtResource("test_script")
                     use_mcp=self.use_mcp,
                     timeout_seconds=self.solver_timeout_seconds,
                     use_runtime_video=self.use_runtime_video,
+                    effort=self.effort,
                 )
                 solver_result = solver.solve_task()
 
@@ -973,6 +990,7 @@ script = ExtResource("test_script")
                 "model": display_model,
                 "use_mcp": self.use_mcp,
                 "use_runtime_video": self.use_runtime_video,
+                "effort": self.effort,
                 "skip_display": self.skip_display,
                 "debug": self.debug,
                 "solver_success": solver_result.success if solver_result else False,
@@ -1110,6 +1128,7 @@ script = ExtResource("test_script")
             "use_runtime_video": self.use_runtime_video,
             "run_name": self.run_name,
             "solver_timeout_seconds": self.solver_timeout_seconds,
+            "effort": self.effort,
         }
 
         task_iter = iter(tasks)
@@ -1150,6 +1169,7 @@ script = ExtResource("test_script")
                             "model": self.model,
                             "use_mcp": self.use_mcp,
                             "use_runtime_video": self.use_runtime_video,
+                            "effort": self.effort,
                             "skip_display": self.skip_display,
                             "debug": self.debug,
                         }
@@ -1365,6 +1385,7 @@ script = ExtResource("test_script")
                     "model": self.model,
                     "use_mcp": self.use_mcp,
                     "use_runtime_video": self.use_runtime_video,
+                    "effort": self.effort,
                     "skip_display": self.skip_display,
                     "debug": self.debug,
                 }
@@ -1495,6 +1516,7 @@ script = ExtResource("test_script")
                 "debug": self.debug,
                 "run_name": self.run_name,
                 "parallel": self.parallel,
+                "effort": self.effort,
             },
             # Token usage statistics
             "token_statistics": {
@@ -1533,6 +1555,7 @@ script = ExtResource("test_script")
             "model",
             "use_mcp",
             "use_runtime_video",
+            "effort",
             "skip_display",
             "debug",
             "solver_success",
@@ -1562,6 +1585,7 @@ script = ExtResource("test_script")
                     "model": result.get("model", ""),
                     "use_mcp": result.get("use_mcp", False),
                     "use_runtime_video": result.get("use_runtime_video", False),
+                    "effort": result.get("effort", ""),
                     "skip_display": result.get("skip_display", False),
                     "debug": result.get("debug", False),
                     "solver_success": result.get("solver_success", False),
@@ -1635,6 +1659,10 @@ def main():
         type=int,
         default=TIMEOUT,
     )
+    parser.add_argument(
+        "--effort",
+        help="Provider-native reasoning effort (for example: low, medium, high, or xhigh)",
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # List command
@@ -1681,6 +1709,7 @@ def main():
         run_name=args.run_name,
         parallel=args.parallel,
         solver_timeout_seconds=args.solver_timeout if args.solver_timeout > 0 else None,
+        effort=args.effort,
     )
 
     if args.command == "list":

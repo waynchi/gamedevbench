@@ -34,6 +34,7 @@ class OpenHandsSolver(BaseSolver):
     # Solver capabilities (required by BaseSolver)
     SUPPORTS_MCP = True
     SUPPORTS_SYSTEM_PROMPT = True  # Via custom_instructions
+    SUPPORTS_EFFORT = True
 
     # Model name mapping for litellm format
     MODEL_MAPPING = {
@@ -58,6 +59,7 @@ class OpenHandsSolver(BaseSolver):
         api_base: Optional[str] = None,
         openrouter_site_url: Optional[str] = None,
         openrouter_app_name: Optional[str] = None,
+        effort: Optional[str] = None,
     ):
         """
         Initialize the OpenHands solver.
@@ -68,6 +70,7 @@ class OpenHandsSolver(BaseSolver):
             use_mcp: Whether to use MCP tools
             model: Model to use (default: openai/gpt-4o, supports vision)
             use_runtime_video: Whether to append Godot runtime video instructions to prompts
+            effort: Provider-native reasoning effort override
         """
         # Call parent constructor (handles MCP validation)
         super().__init__(timeout_seconds, debug, use_mcp, use_runtime_video)
@@ -80,6 +83,7 @@ class OpenHandsSolver(BaseSolver):
         self.api_base = api_base or os.environ.get("OPENROUTER_API_BASE")
         self.openrouter_site_url = openrouter_site_url or os.environ.get("OR_SITE_URL")
         self.openrouter_app_name = openrouter_app_name or os.environ.get("OR_APP_NAME")
+        self.effort = effort
 
     @staticmethod
     def is_rate_limit_error(error_message: str) -> bool:
@@ -90,6 +94,22 @@ class OpenHandsSolver(BaseSolver):
             "quota exceeded", "429", "too many requests",
         ]
         return any(keyword in error_lower for keyword in rate_limit_keywords)
+
+    def _create_llm(self, api_key: str):
+        """Create the OpenHands LLM with an optional effort override."""
+        llm_kwargs = {
+            "model": self.model,
+            "api_key": SecretStr(api_key),
+            "temperature": 0.0,
+            "base_url": self.api_base,
+            "openrouter_site_url": (
+                self.openrouter_site_url or "https://docs.all-hands.dev/"
+            ),
+            "openrouter_app_name": self.openrouter_app_name or "OpenHands",
+        }
+        if self.effort:
+            llm_kwargs["reasoning_effort"] = self.effort
+        return LLM(**llm_kwargs)
 
     def solve_task(self) -> SolverResult:
         """Solve the task in the current directory using OpenHands."""
@@ -139,15 +159,7 @@ class OpenHandsSolver(BaseSolver):
                 print("=" * 60)
 
             # Configure LLM with vision-capable model
-            llm = LLM(
-                model=self.model,
-                api_key=SecretStr(api_key),
-                temperature=0.0,
-                base_url=self.api_base,
-                openrouter_site_url=self.openrouter_site_url or "https://docs.all-hands.dev/",
-                openrouter_app_name=self.openrouter_app_name or "OpenHands",
-                reasoning_effort="xhigh",
-            )
+            llm = self._create_llm(api_key)
 
             mcp_config = {
                 "mcpServers": {

@@ -18,6 +18,7 @@ class BaseSolver(ABC):
     All solver implementations must inherit from this class and define:
     - SUPPORTS_MCP: bool class attribute
     - SUPPORTS_SYSTEM_PROMPT: bool class attribute
+    - SUPPORTS_EFFORT: bool class attribute
     - solve_task() method
     - is_rate_limit_error() static method
     """
@@ -25,6 +26,7 @@ class BaseSolver(ABC):
     # Subclasses must define these as class attributes
     SUPPORTS_MCP: bool = False
     SUPPORTS_SYSTEM_PROMPT: bool = False
+    SUPPORTS_EFFORT: bool = False
 
     def __init__(
         self,

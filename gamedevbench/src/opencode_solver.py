@@ -22,6 +22,7 @@ class OpenCodeSolver(BaseSolver):
 
     SUPPORTS_MCP = True
     SUPPORTS_SYSTEM_PROMPT = False
+    SUPPORTS_EFFORT = True
 
     def __init__(
         self,
@@ -31,10 +32,12 @@ class OpenCodeSolver(BaseSolver):
         model: Optional[str] = None,
         agent: str = "build",
         use_runtime_video: bool = False,
+        effort: Optional[str] = None,
     ):
         super().__init__(timeout_seconds, debug, use_mcp, use_runtime_video)
         self.model = model
         self.agent = agent
+        self.effort = effort
 
     def _config_path(self) -> Path:
         if self.use_mcp:
@@ -112,6 +115,9 @@ class OpenCodeSolver(BaseSolver):
                 "--dir",
                 str(os.getcwd()),
             ]
+
+            if self.effort:
+                cmd.extend(["--variant", self.effort])
 
             cmd.append(prompt)
 

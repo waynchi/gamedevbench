@@ -141,6 +141,17 @@ Parallelism is supported for task-list and all-task runs. Start at `--parallel 2
 
 The default solver timeout is 600 seconds / 10 minutes. Use `--solver-timeout <seconds>` to override it for a run, or `--solver-timeout 0` to disable only the solver timeout. Validation still uses the benchmark's built-in validation timeout.
 
+## Reasoning Effort
+
+Use the generic `--effort <value>` option for Claude Code, Codex, OpenHands,
+and OpenCode runs. The runner maps it to each harness's native setting and
+records the value in result metadata. Accepted values depend on the provider
+and model; common values are `low`, `medium`, `high`, and `xhigh`.
+
+Omit `--effort` for baseline runs that should retain the harness configuration
+or server-side default. Do not infer or label an unset default as a specific
+effort level without separate request-level verification.
+
 Headless GLM 5.2 run with both runtime-video prompt guidance and MCP enabled:
 
 ```bash

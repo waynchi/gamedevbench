@@ -40,6 +40,7 @@ class ClaudeCodeSolver(BaseSolver):
     # Solver capabilities (required by BaseSolver)
     SUPPORTS_MCP = True
     SUPPORTS_SYSTEM_PROMPT = True
+    SUPPORTS_EFFORT = True
 
     def __init__(
         self,
@@ -48,11 +49,13 @@ class ClaudeCodeSolver(BaseSolver):
         use_mcp: bool = False,
         use_runtime_video: bool = False,
         model: Optional[str] = None,
+        effort: Optional[str] = None,
     ):
         """Initialize the Claude Code solver."""
         # Call parent constructor (handles MCP validation)
         super().__init__(timeout_seconds, debug, use_mcp, use_runtime_video)
         self.model = model
+        self.effort = effort
 
     @staticmethod
     def is_rate_limit_error(error_message: str) -> bool:
@@ -105,6 +108,9 @@ class ClaudeCodeSolver(BaseSolver):
 
             if self.model:
                 options_kwargs["model"] = self.model
+
+            if self.effort:
+                options_kwargs["effort"] = self.effort
 
             if self.use_mcp:
                 options_kwargs["mcp_servers"] = {

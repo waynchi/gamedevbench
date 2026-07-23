@@ -21,6 +21,7 @@ class CodexSolver(BaseSolver):
     # Solver capabilities (required by BaseSolver)
     SUPPORTS_MCP = True
     SUPPORTS_SYSTEM_PROMPT = False  # Codex embeds context in main prompt
+    SUPPORTS_EFFORT = True
 
     def __init__(
         self,
@@ -31,6 +32,7 @@ class CodexSolver(BaseSolver):
         approval_policy: str = "never",      # untrusted | on-request | never
         sandbox: str = "danger-full-access",  # read-only | workspace-write | danger-full-access
         use_runtime_video: bool = False,
+        effort: Optional[str] = None,
     ):
         # Call parent constructor (handles MCP validation)
         super().__init__(timeout_seconds, debug, use_mcp, use_runtime_video)
@@ -39,6 +41,7 @@ class CodexSolver(BaseSolver):
         self.model = model
         self.approval_policy = approval_policy
         self.sandbox = sandbox
+        self.effort = effort
 
         # Only configure MCP if enabled
         if use_mcp:
@@ -177,6 +180,9 @@ args = ["run", "gamedevbench-mcp"]
 
             if self.model:
                 cmd.extend(["-m", self.model])
+
+            if self.effort:
+                cmd.extend(["-c", f'model_reasoning_effort="{self.effort}"'])
 
             cmd.extend(["-s", self.sandbox, "-C", str(os.getcwd()), prompt])
 

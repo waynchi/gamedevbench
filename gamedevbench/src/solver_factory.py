@@ -45,6 +45,7 @@ class SolverFactory:
         use_mcp: bool = False,
         timeout_seconds: Optional[int] = 600,
         use_runtime_video: bool = False,
+        effort: Optional[str] = None,
     ) -> BaseSolver:
         """
         Create a solver instance based on agent type.
@@ -56,6 +57,7 @@ class SolverFactory:
             use_mcp: Enable MCP server functionality (will validate solver supports it)
             timeout_seconds: Maximum time for solver execution
             use_runtime_video: Enable runtime video mode (appends Godot runtime instructions to prompts)
+            effort: Provider-native reasoning effort override
 
         Returns:
             Configured solver instance
@@ -87,6 +89,14 @@ class SolverFactory:
                 f"Solvers with MCP support: {cls.get_mcp_capable_solvers()}"
             )
 
+        if effort and not solver_class.SUPPORTS_EFFORT:
+            effort_capable = ", ".join(cls.get_effort_capable_solvers())
+            raise ValueError(
+                f"Agent '{agent}' does not support --effort. "
+                "Use a solver with native reasoning-effort support "
+                f"({effort_capable}) or omit the flag."
+            )
+
         # Build kwargs based on what each solver accepts
         kwargs = {
             "debug": debug,
@@ -107,6 +117,9 @@ class SolverFactory:
         if solver_class.SUPPORTS_MCP:
             kwargs["use_mcp"] = use_mcp
 
+        if effort:
+            kwargs["effort"] = effort
+
         # Create and return solver instance
         # The BaseSolver.__init__ will perform final validation
         return solver_class(**kwargs)
@@ -123,6 +136,15 @@ class SolverFactory:
             agent
             for agent, solver_class in cls._SOLVER_REGISTRY.items()
             if solver_class.SUPPORTS_MCP
+        )
+
+    @classmethod
+    def get_effort_capable_solvers(cls) -> list[str]:
+        """Get solvers that support native reasoning-effort overrides."""
+        return sorted(
+            agent
+            for agent, solver_class in cls._SOLVER_REGISTRY.items()
+            if solver_class.SUPPORTS_EFFORT
         )
 
     @classmethod
@@ -146,6 +168,7 @@ class SolverFactory:
         return {
             "supports_mcp": solver_class.SUPPORTS_MCP,
             "supports_system_prompt": solver_class.SUPPORTS_SYSTEM_PROMPT,
+            "supports_effort": solver_class.SUPPORTS_EFFORT,
         }
 
     @classmethod

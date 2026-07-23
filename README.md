@@ -108,6 +108,7 @@ uv run python gamedevbench/src/benchmark_runner.py \
 |------|-------------|
 | `--agent AGENT` | Agent to use *(required)* |
 | `--model MODEL` | Model name (e.g., `claude-sonnet-4-5-20250929`; for OpenCode use `provider/model`) |
+| `--effort EFFORT` | Provider-native reasoning effort for supported harnesses |
 | `--enable-mcp` | Enable MCP server for screenshot capabilities *(macOS only)* |
 | `--use-runtime-video` | Append Godot runtime instructions to prompts |
 | `--skip-display` | Skip tasks that require a display |
@@ -116,6 +117,22 @@ uv run python gamedevbench/src/benchmark_runner.py \
 ### Platform Notes
 
 MCP screenshot functionality (`--enable-mcp`) requires **macOS** with AppleScript. Set `GODOT_SCREENSHOT_DISPLAY` to the correct display number.
+
+### Reasoning Effort
+
+Use `--effort <value>` to control reasoning effort for Claude Code, Codex,
+OpenHands, and OpenCode. GameDevBench maps the value to the harness-native
+setting:
+
+- Claude Code: `ClaudeAgentOptions.effort`
+- Codex: `model_reasoning_effort`
+- OpenHands: `LLM.reasoning_effort`
+- OpenCode: `--variant`
+
+Accepted values depend on the provider and model; common values include `low`,
+`medium`, `high`, and `xhigh`. When the flag is omitted, GameDevBench sends no
+override and preserves the harness configuration or default. The requested
+value is recorded in task, CSV, and aggregate result metadata.
 
 ## Citation
 
