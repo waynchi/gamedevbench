@@ -114,6 +114,10 @@ uv run python gamedevbench/src/benchmark_runner.py \
 | `--skip-display` | **Deprecated.** Retain the legacy behavior of skipping display-required tasks |
 | `run --task-list FILE` | Task list YAML (e.g., `tasks.yaml`) |
 
+When combining `--resume-from RESULTS.json` with `run --task-list FILE`, only
+incomplete tasks named in the task list are rerun. Existing results outside the
+selection are retained in the final summary.
+
 ### Platform Notes
 
 On Linux, `run` and `validate` automatically start under Xvfb when `DISPLAY`

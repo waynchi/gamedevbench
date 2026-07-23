@@ -224,18 +224,23 @@ class GodotBenchmarkRunner:
             print(f"Error loading progress file: {e}")
             return [], []
 
-    def _load_results_from_file(self, results_file: str) -> Tuple[List[str], List[str], List[Dict]]:
+    def _load_results_from_file(
+        self,
+        results_file: str,
+        selected_tasks: Optional[set[str]] = None,
+    ) -> Tuple[List[str], List[str], List[Dict]]:
         """
         Load results from a JSON file and determine which tasks to skip/redo.
 
         Args:
             results_file: Path to the results JSON file
+            selected_tasks: Optional task names eligible to be rerun
 
         Returns:
             Tuple of (tasks_to_skip, tasks_to_redo, previous_results)
-            - tasks_to_skip: Tasks with solver_success=true
-            - tasks_to_redo: Tasks with solver_success=false
-            - previous_results: All results from tasks_to_skip (to be included in final results)
+            - tasks_to_skip: Existing tasks that should not be rerun
+            - tasks_to_redo: Selected tasks with solver_success=false
+            - previous_results: Results from tasks_to_skip for the final results
         """
         results_path = Path(results_file)
         if not results_path.exists():
@@ -257,7 +262,9 @@ class GodotBenchmarkRunner:
                 solver_success = task_result.get("solver_success", False)
 
                 if task_name:
-                    if solver_success:
+                    if solver_success or (
+                        selected_tasks is not None and task_name not in selected_tasks
+                    ):
                         tasks_to_skip.append(task_name)
                         previous_results.append(task_result)
                     else:
@@ -1273,16 +1280,19 @@ script = ExtResource("test_script")
 
         # Check if resuming from a results file
         if self.resume_from:
-            tasks_to_skip, tasks_to_redo, previous_results = self._load_results_from_file(self.resume_from)
+            tasks_to_skip, tasks_to_redo, previous_results = self._load_results_from_file(
+                self.resume_from,
+                selected_tasks=set(tasks) if task_list_file else None,
+            )
 
             # Find new tasks that aren't in the results file
             all_processed_tasks = set(tasks_to_skip + tasks_to_redo)
             new_tasks = [t for t in tasks if t not in all_processed_tasks]
 
             print(f"Resuming from results file: {self.resume_from}")
-            print(f"  Skipping {len(tasks_to_skip)} tasks with solver_success=true")
-            print(f"  Re-running {len(tasks_to_redo)} tasks with solver_success=false")
-            print(f"  Running {len(new_tasks)} new tasks not in results file")
+            print(f"  Keeping {len(tasks_to_skip)} existing task results")
+            print(f"  Re-running {len(tasks_to_redo)} selected incomplete tasks")
+            print(f"  Running {len(new_tasks)} selected tasks not in results file")
 
             # Start with previous successful results
             results = previous_results
@@ -1629,7 +1639,7 @@ def main():
     )
     parser.add_argument(
         "--resume-from",
-        help="Resume from a specific results JSON file (skips tasks with solver_success=true, redoes tasks with solver_success=false)",
+        help="Resume from results JSON; with --task-list, only listed incomplete tasks are rerun",
         type=str,
     )
     parser.add_argument(
