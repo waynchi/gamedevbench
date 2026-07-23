@@ -7,6 +7,7 @@ import os
 import shutil
 import csv
 import re
+import sys
 import yaml
 import tempfile
 import uuid
@@ -27,6 +28,10 @@ from gamedevbench.src.utils.constants import (
 from gamedevbench.src.utils.data_types import ValidationResult
 from gamedevbench.src.utils.validation import ValidationParser
 from gamedevbench.src.solver_factory import SolverFactory
+from gamedevbench.src.virtual_display import (
+    VirtualDisplayError,
+    ensure_virtual_display,
+)
 
 
 def _run_task_worker(config: Dict) -> Dict:
@@ -1634,7 +1639,7 @@ def main():
     )
     parser.add_argument(
         "--skip-display",
-        help="Skip tasks that require display (requires_display=true in task_config.json)",
+        help="DEPRECATED: skip display-required tasks instead of running them under Xvfb on Linux",
         action="store_true",
     )
     parser.add_argument(
@@ -1695,6 +1700,18 @@ def main():
     if not args.command:
         parser.print_help()
         return
+
+    if args.skip_display:
+        print(
+            "Warning: --skip-display is deprecated. Display-required tasks "
+            "now run under Xvfb automatically on Linux.",
+            file=sys.stderr,
+        )
+
+    try:
+        ensure_virtual_display(args.command, args.skip_display)
+    except VirtualDisplayError as error:
+        parser.error(str(error))
 
     runner = GodotBenchmarkRunner(
         use_gt=args.gt,

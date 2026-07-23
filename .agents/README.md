@@ -104,8 +104,7 @@ OpenRouter lists GLM 5.2 as `z-ai/glm-5.2`, so the LiteLLM/OpenHands model strin
 uv run gamedevbench \
   --agent openhands \
   --model openrouter/z-ai/glm-5.2 \
-  --run-name glm52_openhands_full_headless \
-  --skip-display \
+  --run-name glm52_openhands_full \
   --parallel 2 \
   run --task-list tasks.yaml
 ```
@@ -114,13 +113,12 @@ The OpenRouter model page is https://openrouter.ai/z-ai/glm-5.2. Do not reuse th
 
 ## Running Benchmarks
 
-Headless GLM 5.2 run through OpenCode:
+GLM 5.2 run through OpenCode:
 
 ```bash
 uv run gamedevbench \
   --agent opencode \
-  --run-name glm52_opencode_full_headless \
-  --skip-display \
+  --run-name glm52_opencode_full \
   --parallel 2 \
   run --task-list tasks.yaml
 ```
@@ -130,8 +128,7 @@ Resume an interrupted run:
 ```bash
 uv run gamedevbench \
   --agent opencode \
-  --run-name glm52_opencode_full_headless \
-  --skip-display \
+  --run-name glm52_opencode_full \
   --resume \
   --parallel 2 \
   run --task-list tasks.yaml
@@ -152,13 +149,12 @@ Omit `--effort` for baseline runs that should retain the harness configuration
 or server-side default. Do not infer or label an unset default as a specific
 effort level without separate request-level verification.
 
-Headless GLM 5.2 run with both runtime-video prompt guidance and MCP enabled:
+GLM 5.2 run with both runtime-video prompt guidance and MCP enabled:
 
 ```bash
 uv run gamedevbench \
   --agent opencode \
-  --run-name glm52_opencode_runtime_video_mcp_headless \
-  --skip-display \
+  --run-name glm52_opencode_runtime_video_mcp \
   --use-runtime-video \
   --enable-mcp \
   --parallel 2 \
@@ -170,8 +166,7 @@ Resume that run:
 ```bash
 uv run gamedevbench \
   --agent opencode \
-  --run-name glm52_opencode_runtime_video_mcp_headless \
-  --skip-display \
+  --run-name glm52_opencode_runtime_video_mcp \
   --use-runtime-video \
   --enable-mcp \
   --resume \

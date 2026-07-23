@@ -109,14 +109,21 @@ uv run python gamedevbench/src/benchmark_runner.py \
 | `--agent AGENT` | Agent to use *(required)* |
 | `--model MODEL` | Model name (e.g., `claude-sonnet-4-5-20250929`; for OpenCode use `provider/model`) |
 | `--effort EFFORT` | Provider-native reasoning effort for supported harnesses |
-| `--enable-mcp` | Enable MCP server for screenshot capabilities *(macOS only)* |
+| `--enable-mcp` | Enable MCP screenshot capabilities *(macOS, or Linux with Xvfb and ffmpeg)* |
 | `--use-runtime-video` | Append Godot runtime instructions to prompts |
-| `--skip-display` | Skip tasks that require a display |
+| `--skip-display` | **Deprecated.** Retain the legacy behavior of skipping display-required tasks |
 | `run --task-list FILE` | Task list YAML (e.g., `tasks.yaml`) |
 
 ### Platform Notes
 
-MCP screenshot functionality (`--enable-mcp`) requires **macOS** with AppleScript. Set `GODOT_SCREENSHOT_DISPLAY` to the correct display number.
+On Linux, `run` and `validate` automatically start under Xvfb when `DISPLAY`
+is unset, so display-required tasks run by default. Install the `xvfb` and
+`xauth` OS packages in remote or container environments. `--skip-display` is
+deprecated and will be removed in a future release.
+
+MCP screenshot functionality uses AppleScript on macOS or Xvfb and ffmpeg on
+Linux. Set `GODOT_SCREENSHOT_DISPLAY` to the correct display number when
+selecting a macOS display.
 
 ### Reasoning Effort
 
