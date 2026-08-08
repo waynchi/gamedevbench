@@ -13,7 +13,7 @@
 [![Project Page](https://img.shields.io/badge/Project-Page-blue.svg)](https://waynechi.com/gamedevbench)
 [![arXiv](https://img.shields.io/badge/arXiv-2602.11103-b31b1b.svg)](https://arxiv.org/abs/2602.11103)
 [![Hugging Face Paper](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Paper-yellow)](https://huggingface.co/papers/2602.11103)
-[![Godot](https://img.shields.io/badge/Godot-4.x-brightgreen.svg)](https://godotengine.org/)
+[![Godot](https://img.shields.io/badge/Godot-4.4.1-brightgreen.svg)](https://godotengine.org/download/archive/4.4.1-stable/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-lightgrey.svg)](LICENSE)
 
 <br>
@@ -60,7 +60,7 @@ GameDevBench contains **333 game development tasks** to evaluate LLM agents' abi
 
 ### Prerequisites
 
-- **Godot 4.x** — Download from [godotengine.org](https://godotengine.org/download). Ensure `godot` is in your PATH or set `GODOT_EXEC_PATH`.
+- **Godot 4.4.1 (exact)** — Download the [4.4.1 stable release](https://godotengine.org/download/archive/4.4.1-stable/). Official validation and leaderboard runs require this version. Ensure it is available as `godot`, or set `GODOT_EXEC_PATH` to the 4.4.1 executable; the CLI rejects other versions before running tasks.
 - **Python 3.10+** (Python 3.12+ for OpenHands)
 
 ### Install an Agent

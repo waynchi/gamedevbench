@@ -25,6 +25,10 @@ from gamedevbench.src.utils.constants import (
     RESULTS_FOLDER,
     TIMEOUT,
 )
+from gamedevbench.src.utils.godot_version import (
+    GodotVersionError,
+    require_supported_godot,
+)
 from gamedevbench.src.utils.data_types import ValidationResult
 from gamedevbench.src.utils.validation import ValidationParser
 from gamedevbench.src.solver_factory import SolverFactory
@@ -50,6 +54,7 @@ def _run_task_worker(config: Dict) -> Dict:
         parallel=1,
         solver_timeout_seconds=config["solver_timeout_seconds"],
         effort=config["effort"],
+        godot_version=config.get("godot_version"),
     )
     return runner.run_benchmark(config["task_name"])
 
@@ -70,6 +75,7 @@ class GodotBenchmarkRunner:
         parallel: int = 1,
         solver_timeout_seconds: Optional[int] = TIMEOUT,
         effort: Optional[str] = None,
+        godot_version: Optional[str] = None,
     ):
         """
         Initialize the benchmark runner.
@@ -88,8 +94,11 @@ class GodotBenchmarkRunner:
             parallel: Number of tasks to run concurrently when running a task list
             solver_timeout_seconds: Maximum solver time in seconds; 0/None disables
             effort: Provider-native reasoning effort override
+            godot_version: Full version string reported by the configured Godot
         """
         self.godot_path = GODOT_EXEC_PATH
+        self.godot_version = godot_version
+        os.environ.setdefault("GODOT_EXEC_PATH", self.godot_path)
         if use_gt:
             self.tasks_dir = GT_TASKS_DIR
         else:
@@ -501,6 +510,7 @@ script = ExtResource("test_script")
                     "use_mcp": self.use_mcp,
                     "use_runtime_video": self.use_runtime_video,
                     "effort": self.effort,
+                    "godot_version": self.godot_version,
                     "skip_display": self.skip_display,
                     "debug": self.debug,
                 }
@@ -523,6 +533,7 @@ script = ExtResource("test_script")
             "use_mcp": self.use_mcp,
             "use_runtime_video": self.use_runtime_video,
             "effort": self.effort,
+            "godot_version": self.godot_version,
             "skip_display": self.skip_display,
             "debug": self.debug,
         }
@@ -849,6 +860,7 @@ script = ExtResource("test_script")
                 "use_mcp": self.use_mcp,
                 "use_runtime_video": self.use_runtime_video,
                 "effort": self.effort,
+                "godot_version": self.godot_version,
                 "skip_display": self.skip_display,
                 "debug": self.debug,
             }
@@ -1003,6 +1015,7 @@ script = ExtResource("test_script")
                 "use_mcp": self.use_mcp,
                 "use_runtime_video": self.use_runtime_video,
                 "effort": self.effort,
+                "godot_version": self.godot_version,
                 "skip_display": self.skip_display,
                 "debug": self.debug,
                 "solver_success": solver_result.success if solver_result else False,
@@ -1141,6 +1154,7 @@ script = ExtResource("test_script")
             "run_name": self.run_name,
             "solver_timeout_seconds": self.solver_timeout_seconds,
             "effort": self.effort,
+            "godot_version": self.godot_version,
         }
 
         task_iter = iter(tasks)
@@ -1182,6 +1196,7 @@ script = ExtResource("test_script")
                             "use_mcp": self.use_mcp,
                             "use_runtime_video": self.use_runtime_video,
                             "effort": self.effort,
+                            "godot_version": self.godot_version,
                             "skip_display": self.skip_display,
                             "debug": self.debug,
                         }
@@ -1401,6 +1416,7 @@ script = ExtResource("test_script")
                     "use_mcp": self.use_mcp,
                     "use_runtime_video": self.use_runtime_video,
                     "effort": self.effort,
+                    "godot_version": self.godot_version,
                     "skip_display": self.skip_display,
                     "debug": self.debug,
                 }
@@ -1532,6 +1548,7 @@ script = ExtResource("test_script")
                 "run_name": self.run_name,
                 "parallel": self.parallel,
                 "effort": self.effort,
+                "godot_version": self.godot_version,
             },
             # Token usage statistics
             "token_statistics": {
@@ -1571,6 +1588,7 @@ script = ExtResource("test_script")
             "use_mcp",
             "use_runtime_video",
             "effort",
+            "godot_version",
             "skip_display",
             "debug",
             "solver_success",
@@ -1601,6 +1619,7 @@ script = ExtResource("test_script")
                     "use_mcp": result.get("use_mcp", False),
                     "use_runtime_video": result.get("use_runtime_video", False),
                     "effort": result.get("effort", ""),
+                    "godot_version": result.get("godot_version", ""),
                     "skip_display": result.get("skip_display", False),
                     "debug": result.get("debug", False),
                     "solver_success": result.get("solver_success", False),
@@ -1723,6 +1742,15 @@ def main():
     except VirtualDisplayError as error:
         parser.error(str(error))
 
+    godot_version = None
+    if args.command != "list":
+        try:
+            godot_version = require_supported_godot(GODOT_EXEC_PATH)
+        except GodotVersionError as error:
+            parser.error(str(error))
+        os.environ["GODOT_EXEC_PATH"] = GODOT_EXEC_PATH
+        print(f"Using Godot {godot_version} ({GODOT_EXEC_PATH})", flush=True)
+
     runner = GodotBenchmarkRunner(
         use_gt=args.gt,
         agent=args.agent,
@@ -1737,6 +1765,7 @@ def main():
         parallel=args.parallel,
         solver_timeout_seconds=args.solver_timeout if args.solver_timeout > 0 else None,
         effort=args.effort,
+        godot_version=godot_version,
     )
 
     if args.command == "list":

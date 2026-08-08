@@ -44,7 +44,7 @@ def create_task_prompt(config: dict, use_runtime_video: bool = False, use_mcp: b
     instruction = config.get("instruction")
     
     instruction += "\n You must complete the full task without any further assistance."
-    instruction += "\n Godot is installed and you can run godot using the `godot` command. It is recommended to run this with a timeout (e.g., `timeout 10 godot` for 10 second timeout) to prevent hanging."
+    instruction += "\n Godot 4.4.1 is installed. Use the executable identified by `GODOT_EXEC_PATH` (or the `godot` command when it is on PATH). It is recommended to run it with a timeout (for example, `timeout 10 godot`) to prevent hanging."
     instruction += "You are a visual agent and can use images and videos to help you understand the state of the game."
 
     if use_runtime_video:

@@ -23,6 +23,8 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent, ImageContent
 
+from gamedevbench.src.utils.constants import GODOT_EXEC_PATH
+
 server = Server("godot-screenshot-server")
 
 # Fixed wait time for Godot to load (in seconds)
@@ -164,7 +166,7 @@ async def launch_godot_and_screenshot(project_dir: str, display: int = DEFAULT_T
     # Godot screen numbering: Display N = Screen N-1
     godot_screen = display - 1
     godot_cmd = [
-        "godot",
+        GODOT_EXEC_PATH,
         "--editor",
         "--windowed",
         "--path", project_dir,
@@ -319,7 +321,7 @@ async def capture_headless_screenshot(project_dir: str) -> tuple[str, str] | str
             godot_env = {**os.environ, "DISPLAY": display}
             godot_process = subprocess.Popen(
                 [
-                    "godot",
+                    GODOT_EXEC_PATH,
                     "--editor",
                     "--windowed",
                     "--path",

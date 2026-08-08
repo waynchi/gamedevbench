@@ -11,7 +11,7 @@ Usage:
     uv run python validate_tasks.py --task-list tasks.yaml
     uv run python validate_tasks.py --tasks task_0002 task_0021
 
-Requires tasks to be unzipped first (bash unzip_tasks.sh) and Godot 4.x
+Requires tasks to be unzipped first (bash unzip_tasks.sh) and Godot 4.4.1
 available (in PATH or via GODOT_EXEC_PATH).
 
 Per-task results are written by the harness to results/task_task_<name>.json;
@@ -29,6 +29,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import yaml
+
+from gamedevbench.src.utils.godot_version import (
+    GodotVersionError,
+    require_supported_godot,
+)
 
 REPO = Path(__file__).resolve().parent
 RESULTS = REPO / "results"
@@ -72,6 +77,13 @@ def main():
     ap.add_argument("--workers", type=int,
                     default=max(1, min(8, (os.cpu_count() or 4) - 2)))
     args = ap.parse_args()
+
+    try:
+        godot_version = require_supported_godot(GODOT)
+    except GodotVersionError as error:
+        ap.error(str(error))
+    os.environ["GODOT_EXEC_PATH"] = GODOT
+    print(f"Using Godot {godot_version} ({GODOT})")
 
     tasks = args.tasks or yaml.safe_load(open(args.task_list))["tasks"]
     print(f"Validating {len(tasks)} ground truths with {args.workers} workers")
