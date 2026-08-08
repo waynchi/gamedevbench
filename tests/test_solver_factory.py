@@ -6,13 +6,15 @@ from gamedevbench.src.solver_factory import SolverFactory
 def test_factory_passes_effort_to_supported_solvers():
     claude = SolverFactory.create_solver("claude-code", effort="high")
     codex = SolverFactory.create_solver("codex", effort="xhigh")
+    muse = SolverFactory.create_solver("muse", effort="high")
     opencode = SolverFactory.create_solver("opencode", effort="max")
 
     assert claude.effort == "high"
     assert codex.effort == "xhigh"
+    assert muse.effort == "high"
     assert opencode.effort == "max"
 
-    expected = ["claude-code", "codex", "opencode"]
+    expected = ["claude-code", "codex", "muse", "opencode"]
     if "openhands" in SolverFactory.get_available_agents():
         openhands = SolverFactory.create_solver("openhands", effort="medium")
         assert openhands.effort == "medium"

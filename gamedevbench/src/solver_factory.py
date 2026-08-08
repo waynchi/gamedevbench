@@ -10,6 +10,7 @@ from gamedevbench.src.mini_swe_solver import MiniSweSolver
 from gamedevbench.src.codex_solver import CodexSolver
 from gamedevbench.src.gemini_solver import GeminiSolver
 from gamedevbench.src.opencode_solver import OpenCodeSolver
+from gamedevbench.src.muse_solver import MuseSolver
 
 # OpenHands requires Python 3.12+, make it optional
 try:
@@ -30,6 +31,7 @@ class SolverFactory:
         "codex": CodexSolver,
         "gemini-cli": GeminiSolver,
         "opencode": OpenCodeSolver,
+        "muse": MuseSolver,
     }
 
     # Conditionally add OpenHands if available
@@ -105,7 +107,7 @@ class SolverFactory:
         }
 
         # Add model parameter for solvers that support it
-        if agent in ["claude-code", "mini-swe", "openhands", "gemini-cli", "codex", "opencode"]:
+        if agent in ["claude-code", "mini-swe", "openhands", "gemini-cli", "codex", "opencode", "muse"]:
             should_pass_model = bool(model)
             if agent in ["gemini-cli", "codex", "opencode"] and model == "claude":
                 should_pass_model = False
