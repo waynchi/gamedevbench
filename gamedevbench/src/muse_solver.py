@@ -4,6 +4,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import time
@@ -44,7 +45,7 @@ class MuseSolver(BaseSolver):
     @staticmethod
     def is_rate_limit_error(error_message: str) -> bool:
         error_lower = error_message.lower()
-        return any(
+        return bool(re.search(r"\b429\b", error_lower)) or any(
             marker in error_lower
             for marker in (
                 "rate limit",
@@ -52,7 +53,6 @@ class MuseSolver(BaseSolver):
                 "ratelimit",
                 "quota exceeded",
                 "too many requests",
-                "429",
             )
         )
 

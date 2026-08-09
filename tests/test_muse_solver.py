@@ -100,6 +100,13 @@ def test_muse_parses_responses_api_usage():
     assert usage.cache_write_tokens == 0
 
 
+def test_muse_rate_limit_detection_ignores_hex_sandbox_suffix():
+    assert MuseSolver.is_rate_limit_error("HTTP 429: too many requests")
+    assert not MuseSolver.is_rate_limit_error(
+        "workspace /tmp/gamedevbench_sandbox_d587d429 completed"
+    )
+
+
 def test_muse_returns_logged_usage_cache_and_billing(monkeypatch):
     solver = MuseSolver(
         timeout_seconds=30,
