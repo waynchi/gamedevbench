@@ -997,12 +997,16 @@ script = ExtResource("test_script")
             input_tokens = 0
             output_tokens = 0
             total_tokens = 0
+            cache_read_tokens = 0
+            cache_write_tokens = 0
             cost_usd = 0.0
             if solver_result and solver_result.token_usage:
                 token_usage = solver_result.token_usage
                 input_tokens = token_usage.input_tokens
                 output_tokens = token_usage.output_tokens
                 total_tokens = token_usage.total_tokens
+                cache_read_tokens = token_usage.cache_read_tokens
+                cache_write_tokens = token_usage.cache_write_tokens
                 cost_usd = solver_result.cost_usd
 
             return {
@@ -1031,6 +1035,8 @@ script = ExtResource("test_script")
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
                 "total_tokens": total_tokens,
+                "cache_read_tokens": cache_read_tokens,
+                "cache_write_tokens": cache_write_tokens,
                 "cost_usd": cost_usd,
                 "sandbox_dir": str(sandbox_dir) if sandbox_dir else "",
                 "result_dir": str(result_subdir.relative_to(self.tasks_dir.parent)),
@@ -1478,7 +1484,11 @@ script = ExtResource("test_script")
         if token_stats.get("total_tokens", 0) > 0:
             print(f"\nToken Usage:")
             print(
-                f"  Total: {token_stats['total_tokens']:,} tokens (input: {token_stats['total_input_tokens']:,}, output: {token_stats['total_output_tokens']:,})"
+                f"  Total: {token_stats['total_tokens']:,} tokens "
+                f"(input: {token_stats['total_input_tokens']:,}, "
+                f"output: {token_stats['total_output_tokens']:,}, "
+                f"cache read: {token_stats.get('total_cache_read_tokens', 0):,}, "
+                f"cache write: {token_stats.get('total_cache_write_tokens', 0):,})"
             )
             print(
                 f"  Average per task: {token_stats['avg_tokens_per_task']:,.0f} tokens"
@@ -1516,6 +1526,8 @@ script = ExtResource("test_script")
         total_input_tokens = sum(r.get("input_tokens", 0) for r in results)
         total_output_tokens = sum(r.get("output_tokens", 0) for r in results)
         total_tokens = sum(r.get("total_tokens", 0) for r in results)
+        total_cache_read_tokens = sum(r.get("cache_read_tokens", 0) for r in results)
+        total_cache_write_tokens = sum(r.get("cache_write_tokens", 0) for r in results)
         total_cost_usd = sum(r.get("cost_usd", 0.0) for r in results)
         total_duration = sum(r.get("solver_duration", 0.0) for r in results)
 
@@ -1525,6 +1537,12 @@ script = ExtResource("test_script")
         avg_input_tokens = total_input_tokens / tasks_with_data if tasks_with_data > 0 else 0
         avg_output_tokens = total_output_tokens / tasks_with_data if tasks_with_data > 0 else 0
         avg_tokens = total_tokens / tasks_with_data if tasks_with_data > 0 else 0
+        avg_cache_read_tokens = (
+            total_cache_read_tokens / tasks_with_data if tasks_with_data > 0 else 0
+        )
+        avg_cache_write_tokens = (
+            total_cache_write_tokens / tasks_with_data if tasks_with_data > 0 else 0
+        )
         avg_cost_usd = total_cost_usd / tasks_with_data if tasks_with_data > 0 else 0.0
         avg_duration = total_duration / tasks_with_data if tasks_with_data > 0 else 0.0
 
@@ -1555,9 +1573,13 @@ script = ExtResource("test_script")
                 "total_input_tokens": total_input_tokens,
                 "total_output_tokens": total_output_tokens,
                 "total_tokens": total_tokens,
+                "total_cache_read_tokens": total_cache_read_tokens,
+                "total_cache_write_tokens": total_cache_write_tokens,
                 "avg_input_tokens": round(avg_input_tokens, 2),
                 "avg_output_tokens": round(avg_output_tokens, 2),
                 "avg_tokens_per_task": round(avg_tokens, 2),
+                "avg_cache_read_tokens": round(avg_cache_read_tokens, 2),
+                "avg_cache_write_tokens": round(avg_cache_write_tokens, 2),
             },
             # Cost statistics
             "cost_statistics": {
@@ -1597,6 +1619,8 @@ script = ExtResource("test_script")
             "input_tokens",
             "output_tokens",
             "total_tokens",
+            "cache_read_tokens",
+            "cache_write_tokens",
             "cost_usd",
             "is_rate_limited",
             "timestamp",
@@ -1628,6 +1652,8 @@ script = ExtResource("test_script")
                     "input_tokens": result.get("input_tokens", 0),
                     "output_tokens": result.get("output_tokens", 0),
                     "total_tokens": result.get("total_tokens", 0),
+                    "cache_read_tokens": result.get("cache_read_tokens", 0),
+                    "cache_write_tokens": result.get("cache_write_tokens", 0),
                     "cost_usd": result.get("cost_usd", 0.0),
                     "is_rate_limited": result.get("is_rate_limited", False),
                     "timestamp": result.get("timestamp", ""),
