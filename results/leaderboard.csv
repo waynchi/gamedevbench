@@ -2,7 +2,7 @@ rank,model,harness,pass_at_1_percent,ci_95_percent,new
 1,claude-fable-5 (xhigh),Claude Code,67.3,5.0,false
 2,gpt-5.6-sol (xhigh),Codex,63.7,5.2,false
 3,gpt-5.6-sol (high),Codex,63.1,5.2,false
-3,muse-spark-1.2 [high],Muse Code,63.1,5.2,true
+4,muse-spark-1.2 [high],Muse Code,61.0,5.2,true
 5,gpt-5.6-sol (medium),Codex,58.6,5.3,false
 6,kimi-k3,Kimi Code,58.0,5.3,false
 7,claude-opus-4-8,Claude Code,55.9,5.3,false
