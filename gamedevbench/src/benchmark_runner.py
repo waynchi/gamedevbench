@@ -7,6 +7,7 @@ import os
 import shutil
 import csv
 import re
+import stat
 import sys
 import yaml
 import tempfile
@@ -14,7 +15,7 @@ import uuid
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from gamedevbench.src.utils.constants import (
     TASKS_DIR,
@@ -32,6 +33,12 @@ from gamedevbench.src.utils.godot_version import (
 from gamedevbench.src.utils.data_types import ValidationResult
 from gamedevbench.src.utils.validation import ValidationParser
 from gamedevbench.src.solver_factory import SolverFactory
+from gamedevbench.src.confinement import (
+    ConfinementError,
+    run_confined_godot,
+    run_confined_solver,
+    validate_confinement_available,
+)
 from gamedevbench.src.virtual_display import (
     VirtualDisplayError,
     ensure_virtual_display,
@@ -55,6 +62,8 @@ def _run_task_worker(config: Dict) -> Dict:
         solver_timeout_seconds=config["solver_timeout_seconds"],
         effort=config["effort"],
         godot_version=config.get("godot_version"),
+        confinement=config.get("confinement", "strict"),
+        provider_hosts=config.get("provider_hosts", ()),
     )
     return runner.run_benchmark(config["task_name"])
 
@@ -76,6 +85,8 @@ class GodotBenchmarkRunner:
         solver_timeout_seconds: Optional[int] = TIMEOUT,
         effort: Optional[str] = None,
         godot_version: Optional[str] = None,
+        confinement: str = "strict",
+        provider_hosts: Sequence[str] = (),
     ):
         """
         Initialize the benchmark runner.
@@ -95,6 +106,8 @@ class GodotBenchmarkRunner:
             solver_timeout_seconds: Maximum solver time in seconds; 0/None disables
             effort: Provider-native reasoning effort override
             godot_version: Full version string reported by the configured Godot
+            confinement: Solver isolation profile (strict or off)
+            provider_hosts: Additional provider domain suffixes allowed in strict mode
         """
         self.godot_path = GODOT_EXEC_PATH
         self.godot_version = godot_version
@@ -131,10 +144,16 @@ class GodotBenchmarkRunner:
         self.parallel = max(1, parallel)
         self.solver_timeout_seconds = solver_timeout_seconds
         self.effort = effort
+        if confinement not in {"strict", "off"}:
+            raise ValueError("confinement must be 'strict' or 'off'")
+        self.confinement = confinement
+        self.provider_hosts = tuple(provider_hosts)
 
         # Validate agent configuration early if agent is specified
         if self.agent:
             self._validate_agent_configuration()
+            if self.confinement == "strict":
+                validate_confinement_available()
 
     @staticmethod
     def _sanitize_run_name(run_name: Optional[str]) -> str:
@@ -451,7 +470,11 @@ script = ExtResource("test_script")
             if use_headless:
                 cmd.insert(1, "--headless")
 
-            subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
+            self._run_godot_process(
+                task_dir,
+                cmd[1:],
+                use_private_display=not use_headless,
+            )
             print("Imported project resources")
 
             # Run test scene
@@ -466,8 +489,10 @@ script = ExtResource("test_script")
 
             mode_str = "headless mode" if use_headless else "display mode"
             print(f"Running validation for task: {task_name} ({mode_str})")
-            subprocess_result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=TIMEOUT
+            subprocess_result = self._run_godot_process(
+                task_dir,
+                cmd[1:],
+                use_private_display=not use_headless,
             )
 
             # Parse the output for test results
@@ -693,6 +718,41 @@ script = ExtResource("test_script")
             scenes_dst.mkdir(parents=True, exist_ok=True)
             shutil.copy2(test_tscn_src, scenes_dst / "test.tscn")
 
+    @staticmethod
+    def _assert_safe_solver_workspace(sandbox_dir: Path) -> None:
+        """Reject files that could escape the host-side validation copy.
+
+        The solver has stopped before this check, so the tree cannot race the
+        subsequent copy.  In particular, absolute symlinks that were harmless
+        inside the mount namespace must never be followed from the host.
+        """
+        try:
+            pending = [sandbox_dir]
+            while pending:
+                directory = pending.pop()
+                with os.scandir(directory) as entries:
+                    for entry in entries:
+                        entry_stat = entry.stat(follow_symlinks=False)
+                        mode = entry_stat.st_mode
+                        if stat.S_ISLNK(mode):
+                            raise ConfinementError(
+                                "Solver workspace contains a forbidden symlink: "
+                                f"{Path(entry.path).relative_to(sandbox_dir)}"
+                            )
+                        if stat.S_ISDIR(mode):
+                            pending.append(Path(entry.path))
+                        elif not stat.S_ISREG(mode):
+                            raise ConfinementError(
+                                "Solver workspace contains a forbidden special file: "
+                                f"{Path(entry.path).relative_to(sandbox_dir)}"
+                            )
+        except ConfinementError:
+            raise
+        except OSError as error:
+            raise ConfinementError(
+                f"Could not verify solver workspace safely: {error}"
+            ) from error
+
     def _validate_in_directory(
         self, validation_dir: Path, task_name: str
     ) -> "ValidationResult":
@@ -730,7 +790,11 @@ script = ExtResource("test_script")
             if use_headless:
                 cmd.insert(1, "--headless")
 
-            subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
+            self._run_godot_process(
+                validation_dir,
+                cmd[1:],
+                use_private_display=not use_headless,
+            )
             if self.debug:
                 print("      Imported project resources")
 
@@ -748,8 +812,10 @@ script = ExtResource("test_script")
                 mode_str = "headless mode" if use_headless else "display mode"
                 print(f"      Running validation in: {validation_dir} ({mode_str})")
 
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=TIMEOUT
+            result = self._run_godot_process(
+                validation_dir,
+                cmd[1:],
+                use_private_display=not use_headless,
             )
             output = result.stdout + result.stderr
             validation_result = ValidationParser.parse_output(output, debug=self.debug)
@@ -766,8 +832,41 @@ script = ExtResource("test_script")
         except Exception as e:
             return ValidationResult(False, f"Error running validation: {e}")
 
+    def _run_godot_process(
+        self,
+        workspace: Path,
+        godot_args: Sequence[str],
+        *,
+        use_private_display: bool,
+    ) -> subprocess.CompletedProcess:
+        """Run Godot under the selected confinement profile."""
+        if self.confinement == "strict":
+            confined_args = [
+                "/workspace" if arg == str(workspace) else arg
+                for arg in godot_args
+            ]
+            return run_confined_godot(
+                workspace=workspace,
+                godot_path=self.godot_path,
+                godot_args=confined_args,
+                use_private_display=use_private_display,
+                timeout_seconds=TIMEOUT,
+            )
+        return subprocess.run(
+            [self.godot_path, *godot_args],
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT,
+        )
+
     def _save_test_result(
-        self, task_dir: Path, task_name: str, validation_result=None, solver_result=None
+        self,
+        task_dir: Path,
+        task_name: str,
+        validation_result=None,
+        solver_result=None,
+        confinement_metadata=None,
+        copy_task_files: bool = True,
     ):
         """Save current task state and validation result to test_result folder in parent directory."""
         # Save to tasks/test_result[/run_name]/ instead of tasks/task_xxxx/test_result/
@@ -778,19 +877,25 @@ script = ExtResource("test_script")
         result_subdir.mkdir(parents=True, exist_ok=True)
 
         # Copy all files except backup and hidden test file
-        for item in task_dir.iterdir():
-            if item.name not in [".backup", ".test.gd.hidden", "agent_trajectory.log"]:
-                src = item
-                dst = result_subdir / item.name
-                if item.is_dir():
-                    shutil.copytree(src, dst)
-                else:
-                    shutil.copy2(src, dst)
+        if copy_task_files:
+            for item in task_dir.iterdir():
+                if item.name not in [
+                    ".backup",
+                    ".test.gd.hidden",
+                    "agent_trajectory.log",
+                ]:
+                    src = item
+                    dst = result_subdir / item.name
+                    if item.is_dir():
+                        shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
 
         # Copy log file if exists
-        log_file = task_dir / "agent_trajectory.log"
-        if log_file.exists():
-            shutil.copy2(log_file, result_subdir / "agent_trajectory.log")
+        if copy_task_files:
+            log_file = task_dir / "agent_trajectory.log"
+            if log_file.exists():
+                shutil.copy2(log_file, result_subdir / "agent_trajectory.log")
 
         # Save validation result to result.json
         if validation_result or solver_result:
@@ -799,6 +904,8 @@ script = ExtResource("test_script")
                 "agent": self.agent,
                 "model": self.model,
                 "timestamp": timestamp,
+                "confinement": confinement_metadata
+                or {"profile": "off", "network": "unrestricted"},
             }
 
             # Add validation result
@@ -876,6 +983,12 @@ script = ExtResource("test_script")
                 display_model = self.model
         sandbox_dir = None
         validation_dir = None
+        confinement_metadata = {
+            "profile": "off",
+            "network": "unrestricted",
+        }
+        confinement_failed = False
+        validation_workspace_safe = True
 
         try:
             # Step 1: Create isolated sandbox environment in /tmp
@@ -894,7 +1007,11 @@ script = ExtResource("test_script")
                 "--path",
                 str(sandbox_dir),
             ]
-            subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT)
+            self._run_godot_process(
+                sandbox_dir,
+                cmd[1:],
+                use_private_display=False,
+            )
             if self.debug:
                 print("      Assets loaded and imported")
 
@@ -911,17 +1028,39 @@ script = ExtResource("test_script")
                     )
                     print(f"      Working directory: {sandbox_dir}")
 
-                # Create solver using factory pattern
-                solver = SolverFactory.create_solver(
-                    agent=self.agent,
-                    debug=self.debug,
-                    model=self.model,
-                    use_mcp=self.use_mcp,
-                    timeout_seconds=self.solver_timeout_seconds,
-                    use_runtime_video=self.use_runtime_video,
-                    effort=self.effort,
-                )
-                solver_result = solver.solve_task()
+                if self.confinement == "strict":
+                    confined_run = run_confined_solver(
+                        workspace=sandbox_dir,
+                        agent=self.agent,
+                        model=self.model,
+                        debug=self.debug,
+                        use_mcp=self.use_mcp,
+                        timeout_seconds=self.solver_timeout_seconds,
+                        use_runtime_video=self.use_runtime_video,
+                        effort=self.effort,
+                        godot_path=self.godot_path,
+                        additional_provider_hosts=self.provider_hosts,
+                    )
+                    solver_result = confined_run.result
+                    confinement_metadata = confined_run.metadata
+                else:
+                    # Explicitly unconfined runs remain available for local
+                    # diagnostics, but are marked as unsuitable for scoring.
+                    solver = SolverFactory.create_solver(
+                        agent=self.agent,
+                        debug=self.debug,
+                        model=self.model,
+                        use_mcp=self.use_mcp,
+                        timeout_seconds=self.solver_timeout_seconds,
+                        use_runtime_video=self.use_runtime_video,
+                        effort=self.effort,
+                    )
+                    solver_result = solver.solve_task()
+
+                # Host-side copying runs outside the mount namespace. Reject
+                # symlinks and special files before anything is copied or
+                # validated, even for explicitly unconfined diagnostic runs.
+                self._assert_safe_solver_workspace(sandbox_dir)
 
                 # Save solver output to log file
                 with open(log_file_path, "w") as f:
@@ -929,6 +1068,26 @@ script = ExtResource("test_script")
                     f.write(f"Agent: {self.agent}\n")
                     f.write(f"Model: {display_model}\n")
                     f.write(f"Sandbox: {sandbox_dir}\n")
+                    f.write(
+                        "Confinement: "
+                        f"{confinement_metadata.get('profile', 'off')}\n"
+                    )
+                    f.write(
+                        "Network policy: "
+                        f"{confinement_metadata.get('network', 'unrestricted')}\n"
+                    )
+                    if confinement_metadata.get("provider_hosts"):
+                        f.write(
+                            "Provider hosts: "
+                            + ", ".join(confinement_metadata["provider_hosts"])
+                            + "\n"
+                        )
+                    if confinement_metadata.get("denied_connects"):
+                        f.write(
+                            "Denied network requests: "
+                            + ", ".join(confinement_metadata["denied_connects"])
+                            + "\n"
+                        )
                     f.write(f"Timestamp: {datetime.now().isoformat()}\n")
                     f.write("=" * 80 + "\n\n")
                     if solver_result:
@@ -945,14 +1104,51 @@ script = ExtResource("test_script")
                         f"      Solver completed in {solver_result.duration_seconds:.2f}s"
                     )
 
+            except ConfinementError as e:
+                confinement_failed = True
+                failure_label = (
+                    "Strict confinement"
+                    if self.confinement == "strict"
+                    else "Workspace safety check"
+                )
+                confinement_metadata = {
+                    "profile": (
+                        "strict-v1" if self.confinement == "strict" else "off"
+                    ),
+                    "status": "failed-closed",
+                    "error": str(e),
+                }
+                if self.debug:
+                    print(f"{failure_label} failed closed: {e}")
+                from gamedevbench.src.utils.data_types import SolverResult
+
+                solver_result = SolverResult(
+                    success=False,
+                    message=f"{failure_label} failed closed: {e}",
+                    duration_seconds=0.0,
+                )
             except Exception as e:
+                # Once strict mode is selected, every unexpected boundary or
+                # handoff error must suppress validation. Expected solver
+                # failures are returned as SolverResult objects instead.
+                if self.confinement == "strict":
+                    confinement_failed = True
+                    confinement_metadata = {
+                        "profile": "strict-v1",
+                        "status": "failed-closed",
+                        "error": str(e),
+                    }
                 if self.debug:
                     print(f"Error during {self.agent} solving: {e}")
                 from gamedevbench.src.utils.data_types import SolverResult
 
                 solver_result = SolverResult(
                     success=False,
-                    message=f"Error during solving: {str(e)}",
+                    message=(
+                        f"Strict confinement failed closed: {e}"
+                        if confinement_failed
+                        else f"Error during solving: {e}"
+                    ),
                     duration_seconds=0.0,
                 )
             finally:
@@ -965,21 +1161,51 @@ script = ExtResource("test_script")
             validation_dir = Path(tempfile.gettempdir()) / validation_id
             validation_dir.mkdir(parents=True, exist_ok=True)
 
-            # Copy agent's work and add test files
-            self._copy_sandbox_results_to_validation(
-                sandbox_dir, validation_dir, task_dir
-            )
+            # Copy agent work only after the confinement handoff was verified.
+            if not confinement_failed:
+                self._copy_sandbox_results_to_validation(
+                    sandbox_dir, validation_dir, task_dir
+                )
 
             # Step 4: Run validation
             if self.debug:
                 print(f"[4/5] Running validation...")
-            validation_result = self._validate_in_directory(validation_dir, task_name)
+            if confinement_failed:
+                validation_result = ValidationResult(
+                    False,
+                    "Validation skipped because strict confinement failed closed",
+                )
+            else:
+                validation_result = self._validate_in_directory(
+                    validation_dir, task_name
+                )
+                try:
+                    # Model-produced Godot code also runs during validation
+                    # and could create a link after the first handoff check.
+                    self._assert_safe_solver_workspace(validation_dir)
+                except ConfinementError as error:
+                    validation_workspace_safe = False
+                    confinement_failed = True
+                    confinement_metadata = {
+                        **confinement_metadata,
+                        "status": "failed-closed",
+                        "validation_error": str(error),
+                    }
+                    validation_result = ValidationResult(
+                        False,
+                        f"Validation workspace failed closed: {error}",
+                    )
 
             # Step 5: Save results
             if self.debug:
                 print(f"[5/5] Saving results...")
             result_subdir = self._save_test_result(
-                validation_dir, task_name, validation_result, solver_result
+                validation_dir,
+                task_name,
+                validation_result,
+                solver_result,
+                confinement_metadata,
+                validation_workspace_safe,
             )
 
             # Copy log file to result directory
@@ -1038,6 +1264,7 @@ script = ExtResource("test_script")
                 "cache_read_tokens": cache_read_tokens,
                 "cache_write_tokens": cache_write_tokens,
                 "cost_usd": cost_usd,
+                "confinement": confinement_metadata,
                 "sandbox_dir": str(sandbox_dir) if sandbox_dir else "",
                 "result_dir": str(result_subdir.relative_to(self.tasks_dir.parent)),
             }
@@ -1161,6 +1388,8 @@ script = ExtResource("test_script")
             "solver_timeout_seconds": self.solver_timeout_seconds,
             "effort": self.effort,
             "godot_version": self.godot_version,
+            "confinement": self.confinement,
+            "provider_hosts": self.provider_hosts,
         }
 
         task_iter = iter(tasks)
@@ -1567,6 +1796,8 @@ script = ExtResource("test_script")
                 "parallel": self.parallel,
                 "effort": self.effort,
                 "godot_version": self.godot_version,
+                "confinement": getattr(self, "confinement", "off"),
+                "provider_hosts": list(getattr(self, "provider_hosts", ())),
             },
             # Token usage statistics
             "token_statistics": {
@@ -1623,6 +1854,8 @@ script = ExtResource("test_script")
             "cache_write_tokens",
             "cost_usd",
             "is_rate_limited",
+            "confinement_profile",
+            "confinement_network",
             "timestamp",
             "log_file",
             "result_dir",
@@ -1656,6 +1889,12 @@ script = ExtResource("test_script")
                     "cache_write_tokens": result.get("cache_write_tokens", 0),
                     "cost_usd": result.get("cost_usd", 0.0),
                     "is_rate_limited": result.get("is_rate_limited", False),
+                    "confinement_profile": result.get("confinement", {}).get(
+                        "profile", "off"
+                    ),
+                    "confinement_network": result.get("confinement", {}).get(
+                        "network", "unrestricted"
+                    ),
                     "timestamp": result.get("timestamp", ""),
                     "log_file": result.get("log_file", ""),
                     "result_dir": result.get("result_dir", ""),
@@ -1723,6 +1962,18 @@ def main():
         "--effort",
         help="Provider-native reasoning effort (for example: low, medium, high, or xhigh)",
     )
+    parser.add_argument(
+        "--confinement",
+        choices=("strict", "off"),
+        default="strict",
+        help="Solver and validation isolation profile. Strict is fail-closed and required for scoreable runs.",
+    )
+    parser.add_argument(
+        "--provider-host",
+        action="append",
+        default=[],
+        help="Additional provider domain suffix allowed through the strict proxy (repeatable)",
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # List command
@@ -1763,10 +2014,13 @@ def main():
             file=sys.stderr,
         )
 
-    try:
-        ensure_virtual_display(args.command, args.skip_display)
-    except VirtualDisplayError as error:
-        parser.error(str(error))
+    # Strict runs create a separate Xvfb inside each relevant namespace. The
+    # legacy host display wrapper remains for unconfined and editor runs.
+    if args.confinement == "off" or args.command == "open":
+        try:
+            ensure_virtual_display(args.command, args.skip_display)
+        except VirtualDisplayError as error:
+            parser.error(str(error))
 
     godot_version = None
     if args.command != "list":
@@ -1792,6 +2046,8 @@ def main():
         solver_timeout_seconds=args.solver_timeout if args.solver_timeout > 0 else None,
         effort=args.effort,
         godot_version=godot_version,
+        confinement=args.confinement,
+        provider_hosts=args.provider_host,
     )
 
     if args.command == "list":

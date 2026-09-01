@@ -112,6 +112,8 @@ uv run python gamedevbench/src/benchmark_runner.py \
 | `--enable-mcp` | Enable MCP screenshot capabilities *(macOS, or Linux with Xvfb and ffmpeg)* |
 | `--use-runtime-video` | Append Godot runtime instructions to prompts |
 | `--skip-display` | **Deprecated.** Retain the legacy behavior of skipping display-required tasks |
+| `--confinement strict\|off` | Solver and validation isolation; defaults to fail-closed `strict` |
+| `--provider-host DOMAIN` | Add an explicit provider-domain suffix to strict egress (repeatable) |
 | `run --task-list FILE` | Task list YAML (e.g., `tasks.yaml`) |
 
 When combining `--resume-from RESULTS.json` with `run --task-list FILE`, only
@@ -124,6 +126,29 @@ On Linux, `run` and `validate` automatically start under Xvfb when `DISPLAY`
 is unset, so display-required tasks run by default. Install the `xvfb` and
 `xauth` OS packages in remote or container environments. `--skip-display` is
 deprecated and will be removed in a future release.
+
+Agent runs use strict confinement by default and require the `bubblewrap`
+package (`bwrap`). Each solver receives a private mount, PID, home, temporary,
+and network namespace. Only its filtered task workspace is writable; the
+repository task sources, ground truth, previous results, host home, and sibling
+workspaces are not mounted. Runtime-video and MCP runs start a separate Xvfb
+inside each solver namespace instead of sharing the host display.
+The post-run handoff rejects symlinks and special files before copying the
+workspace back for validation, preventing links from being resolved against
+the host filesystem after the namespace exits. Resource import and validation
+also run in fresh, credential-free Bubblewrap namespaces with no network route.
+
+The solver namespace has no direct network route. HTTPS is tunneled through a
+host proxy that permits only selected provider API endpoints, rejects private
+IP resolution, and requires TLS SNI to match the requested endpoint.
+Muse also runs shell commands with `--sandbox-network restricted` and disables
+web tools. Additional provider domains must be explicitly supplied with
+`--provider-host` and are recorded in result metadata. For `claude-code`,
+an `ANTHROPIC_BASE_URL` gateway (https, port 443) is allowlisted
+automatically and `ANTHROPIC_AUTH_TOKEN` is forwarded into the namespace;
+the gateway host is recorded in result metadata like any other allowed
+host. `--confinement off` is available for local diagnostics, but such
+runs are marked unconfined and should not be used for benchmark scores.
 
 MCP screenshot functionality uses AppleScript on macOS or Xvfb and ffmpeg on
 Linux. Set `GODOT_SCREENSHOT_DISPLAY` to the correct display number when
