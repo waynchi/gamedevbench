@@ -30,7 +30,7 @@ class CodexSolver(BaseSolver):
         use_mcp: bool = False,
         model: Optional[str] = None,
         approval_policy: str = "never",      # untrusted | on-request | never
-        sandbox: str = "danger-full-access",  # read-only | workspace-write | danger-full-access
+        sandbox: str = "workspace-write",  # read-only | workspace-write | danger-full-access
         use_runtime_video: bool = False,
         effort: Optional[str] = None,
     ):
@@ -173,6 +173,25 @@ args = ["run", "gamedevbench-mcp"]
             # Build codex exec command
             cmd = ["codex"]
 
+            if os.environ.get("GAMEDEVBENCH_CONFINED") == "1":
+                # Disable provider-mediated browsing. Direct network access is
+                # also blocked by the outer provider-only namespace.
+                for feature in (
+                    "apps",
+                    "browser_use",
+                    "browser_use_external",
+                    "browser_use_full_cdp_access",
+                    "computer_use",
+                    "enable_mcp_apps",
+                    "image_generation",
+                    "in_app_browser",
+                    "memories",
+                    "plugins",
+                    "remote_plugin",
+                    "standalone_web_search",
+                ):
+                    cmd.extend(["--disable", feature])
+
             if self.approval_policy:
                 cmd.extend(["-a", self.approval_policy])
 
@@ -184,7 +203,17 @@ args = ["run", "gamedevbench-mcp"]
             if self.effort:
                 cmd.extend(["-c", f'model_reasoning_effort="{self.effort}"'])
 
-            cmd.extend(["-s", self.sandbox, "-C", str(os.getcwd()), prompt])
+            confined = os.environ.get("GAMEDEVBENCH_CONFINED") == "1"
+            if confined:
+                # Codex's Linux workspace sandbox uses Bubblewrap and cannot
+                # create a second user namespace inside our outer Bubblewrap.
+                # The outer boundary already exposes only the filtered
+                # workspace/private home and provider proxy.
+                effective_sandbox = "danger-full-access"
+            else:
+                effective_sandbox = self.sandbox
+
+            cmd.extend(["-s", effective_sandbox, "-C", str(os.getcwd()), prompt])
 
             if self.debug:
                 cmd_str = " ".join([c if " " not in c else f'"{c}"' for c in cmd[:-1]])

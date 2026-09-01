@@ -29,6 +29,7 @@ def write_session_log(command, kwargs, events):
 
 
 def test_muse_command_and_event_parsing(monkeypatch):
+    monkeypatch.setenv("GAMEDEVBENCH_CONFINED", "1")
     solver = MuseSolver(
         timeout_seconds=30,
         model="muse-spark-1.2-contributor",
@@ -73,6 +74,9 @@ def test_muse_command_and_event_parsing(monkeypatch):
     assert captured["command"][captured["command"].index("--reasoning-effort") + 1] == "high"
     assert "--disable-approval" in captured["command"]
     assert "--disable-sandbox" in captured["command"]
+    assert "--sandbox-network" not in captured["command"]
+    assert "--disable-web-tools" in captured["command"]
+    assert "--no-foreign-personal-context" in captured["command"]
     assert "--session-id" in captured["command"]
     assert "--no-session-log" not in captured["command"]
 

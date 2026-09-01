@@ -106,6 +106,27 @@ class ClaudeCodeSolver(BaseSolver):
                 cwd=os.getcwd(),
             )
 
+            if os.environ.get("GAMEDEVBENCH_CONFINED") == "1":
+                options_kwargs.update(
+                    disallowed_tools=["WebFetch", "WebSearch"],
+                    setting_sources=[],
+                    skills=[],
+                    sandbox={
+                        "enabled": True,
+                        "autoAllowBashIfSandboxed": True,
+                        "excludedCommands": [],
+                        "allowUnsandboxedCommands": False,
+                        "network": {
+                            "allowedDomains": [],
+                            "deniedDomains": ["*"],
+                            "allowAllUnixSockets": False,
+                        },
+                        # The worker is already inside a stronger outer mount
+                        # and network namespace.
+                        "enableWeakerNestedSandbox": True,
+                    },
+                )
+
             if self.model:
                 options_kwargs["model"] = self.model
 

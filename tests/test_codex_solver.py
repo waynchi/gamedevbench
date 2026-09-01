@@ -35,3 +35,17 @@ def test_codex_unset_effort_preserves_default(monkeypatch):
     )
 
     assert "-c" not in command
+
+
+def test_codex_confined_mode_disables_tool_network_and_browser(monkeypatch):
+    monkeypatch.setenv("GAMEDEVBENCH_CONFINED", "1")
+    command = _capture_command(
+        monkeypatch,
+        CodexSolver(timeout_seconds=30, model="gpt-5.6"),
+    )
+
+    assert "danger-full-access" in command
+    assert "sandbox_workspace_write.network_access=false" not in command
+    assert "browser_use" in command
+    assert "plugins" in command
+    assert "memories" in command

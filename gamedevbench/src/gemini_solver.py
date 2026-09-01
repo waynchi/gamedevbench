@@ -259,6 +259,14 @@ class GeminiSolver(BaseSolver):
             if self.model:
                 cmd.extend(["--model", self.model])
 
+            if os.environ.get("GAMEDEVBENCH_CONFINED") == "1":
+                cmd.extend(
+                    [
+                        "--admin-policy",
+                        "/home/sandbox/.gemini/policies/gamedevbench.toml",
+                    ]
+                )
+
             cmd.extend(["--output-format", "stream-json"])
 
             cmd.extend(["-p", prompt])

@@ -375,8 +375,16 @@ class MuseSolver(BaseSolver):
                 "--workspace",
                 workspace,
                 "--disable-approval",
-                "--disable-sandbox",
+                "--disable-web-tools",
+                "--no-foreign-personal-context",
             ]
+            if os.environ.get("GAMEDEVBENCH_CONFINED") == "1":
+                # Muse's embedded Linux sandbox uses Bubblewrap and cannot
+                # create a second user namespace inside the outer benchmark
+                # boundary. The outer namespace remains the security boundary.
+                cmd.append("--disable-sandbox")
+            else:
+                cmd.extend(["--sandbox-network", "restricted"])
             if self.model:
                 cmd.extend(["--model", self.model])
             if self.effort:
