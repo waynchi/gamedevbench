@@ -75,6 +75,15 @@ When to use the MCP tools:
 """
         instruction += mcp_guidance
 
+    instruction += (
+        "\nYour current directory, /workspace, contains all task-specific files "
+        "available to you. Do not search outside /workspace for other files as "
+        "you will be blocked."
+        "\nYou have restricted web search capabilities. You may find godot "
+        "documentation for 4.4.1 at "
+        "https://docs.godotengine.org/en/4.4/"
+    )
+
     return instruction
 
 
