@@ -302,6 +302,8 @@ class _ProviderProxyHandler(socketserver.BaseRequestHandler):
                 return
             server.audit.record(destination, True)
             upstream.sendall(client_hello)
+            self.request.settimeout(None)
+            upstream.settimeout(None)
             _relay_bidirectional(self.request, upstream)
 
 

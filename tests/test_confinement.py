@@ -1,6 +1,7 @@
 import json
 import os
 import platform
+import queue
 import shutil
 import socket
 import ssl
@@ -111,6 +112,58 @@ def test_provider_proxy_rejects_private_dns_resolution(monkeypatch):
     )
     with pytest.raises(NonPublicAddressError):
         _connect_public_host("api.meta.ai", 443, 1.0)
+
+
+def test_provider_proxy_clears_timeouts_before_relay(tmp_path, mocker):
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    outgoing = ssl.MemoryBIO()
+    tls = context.wrap_bio(
+        ssl.MemoryBIO(),
+        outgoing,
+        server_side=False,
+        server_hostname="api.meta.ai",
+    )
+    with pytest.raises(ssl.SSLWantReadError):
+        tls.do_handshake()
+    client_hello = outgoing.read()
+
+    relay_timeouts = queue.Queue()
+    mocker.patch(
+        "gamedevbench.src.provider_proxy._relay_bidirectional",
+        side_effect=lambda client, upstream: relay_timeouts.put(
+            (client.gettimeout(), upstream.gettimeout())
+        ),
+    )
+
+    upstream, provider = socket.socketpair()
+    with upstream, provider:
+        upstream.settimeout(15.0)
+        provider.settimeout(2.0)
+        connect = mocker.patch(
+            "gamedevbench.src.provider_proxy._connect_public_host",
+            return_value=upstream,
+        )
+        socket_path = tmp_path / "provider.sock"
+        with ProviderProxy(socket_path, ["meta.ai"]) as proxy:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                client.settimeout(2.0)
+                client.connect(str(socket_path))
+                client.sendall(b"CONNECT api.meta.ai:443 HTTP/1.1\r\n\r\n")
+                response = bytearray()
+                while b"\r\n\r\n" not in response:
+                    chunk = client.recv(1024)
+                    assert chunk, "proxy closed before responding to CONNECT"
+                    response.extend(chunk)
+                assert response.startswith(b"HTTP/1.1 200")
+                client.sendall(client_hello)
+                timeouts = relay_timeouts.get(timeout=2.0)
+                with provider.makefile("rb") as received:
+                    assert received.read(len(client_hello)) == client_hello
+
+    connect.assert_called_once_with("api.meta.ai", 443, timeout=15.0)
+    assert proxy.audit.allowed == ["api.meta.ai:443"]
+    assert proxy.audit.denied == []
+    assert timeouts == (None, None)
 
 
 def test_tls_client_hello_sni_cannot_front_another_domain():
