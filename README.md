@@ -62,7 +62,7 @@ GameDevBench contains **333 game development tasks** to evaluate LLM agents' abi
 
 ### Prerequisites
 
-- **Godot 4.4.1 (exact)** — Download the [4.4.1 stable release](https://godotengine.org/download/archive/4.4.1-stable/). Official validation and leaderboard runs require this version. Ensure it is available as `godot`, or set `GODOT_EXEC_PATH` to the 4.4.1 executable; the CLI rejects other versions before running tasks.
+- **Godot 4.4.1 (exact)** — Download the [4.4.1 stable release](https://godotengine.org/download/archive/4.4.1-stable/). Official validation and leaderboard runs require this version. Ensure it is available as `godot`, or set `GODOT_EXEC_PATH` to the 4.4.1 executable; the CLI rejects other versions before running tasks. Set `GODOT_ALLOW_NEWER=1` to experiment with a newer release; such results are not comparable to the leaderboard.
 - **Python 3.10+** (Python 3.12+ for OpenHands)
 
 ### Install an Agent

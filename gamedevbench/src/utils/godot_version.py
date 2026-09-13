@@ -2,8 +2,10 @@
 
 import re
 import subprocess
+import sys
 
 from gamedevbench.src.utils.constants import (
+    GODOT_ALLOW_NEWER,
     GODOT_EXEC_PATH,
     SUPPORTED_GODOT_VERSION,
 )
@@ -40,15 +42,35 @@ def get_godot_version(executable: str = GODOT_EXEC_PATH) -> str:
     return output.splitlines()[0].strip()
 
 
-def require_supported_godot(executable: str = GODOT_EXEC_PATH) -> str:
-    """Require the exact supported Godot semantic version."""
+def _parse_semantic_version(version: str):
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+    return tuple(int(part) for part in match.groups()) if match else None
+
+
+def require_supported_godot(
+    executable: str = GODOT_EXEC_PATH, allow_newer: bool = GODOT_ALLOW_NEWER
+) -> str:
+    """Require the supported Godot version, or a newer one when allowed."""
     version = get_godot_version(executable)
-    match = re.match(r"^(\d+\.\d+\.\d+)", version)
-    detected = match.group(1) if match else None
-    if detected != SUPPORTED_GODOT_VERSION:
-        raise GodotVersionError(
-            f"GameDevBench requires Godot {SUPPORTED_GODOT_VERSION}; "
-            f"{executable!r} reports {version!r}. Set GODOT_EXEC_PATH to "
-            "the supported executable."
+    detected = _parse_semantic_version(version)
+    supported = _parse_semantic_version(SUPPORTED_GODOT_VERSION)
+    if detected == supported:
+        return version
+
+    is_newer = detected is not None and detected > supported
+    if is_newer and allow_newer:
+        print(
+            f"Warning: running with Godot {version}; official GameDevBench "
+            f"results use {SUPPORTED_GODOT_VERSION} and are not comparable.",
+            file=sys.stderr,
+            flush=True,
         )
-    return version
+        return version
+
+    requirement = f"Godot {SUPPORTED_GODOT_VERSION}" + (" or newer" if allow_newer else "")
+    hint = " Or set GODOT_ALLOW_NEWER=1 to run with a newer version anyway." if is_newer else ""
+    raise GodotVersionError(
+        f"GameDevBench requires {requirement}; "
+        f"{executable!r} reports {version!r}. Set GODOT_EXEC_PATH to "
+        f"a supported executable.{hint}"
+    )
