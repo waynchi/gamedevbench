@@ -34,6 +34,8 @@
 
 The official ICML 2026 camera-ready results are available in [`results/`](results/). Select the leaderboard to view the full results on the project website.
 
+**New: GPT-6.1 Sol (xhigh)** achieves **69.97%**, taking first place on the leaderboard.
+
 **New: GPT 6 Astra (High)** passes **229/333 tasks (68.8%)** using Codex with runtime-video and strict confinement. [Aggregate results and run details](results/gpt6_astra_codex_runtime_video_high_full_333/).
 
 <p align="center">
