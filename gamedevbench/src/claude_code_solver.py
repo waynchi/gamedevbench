@@ -7,6 +7,7 @@ import asyncio
 import json
 import time
 import os
+import re
 from typing import Optional
 
 from gamedevbench.src.base_solver import BaseSolver
@@ -68,12 +69,13 @@ class ClaudeCodeSolver(BaseSolver):
             "ratelimit",
             "quota exceeded",
             "quota_exceeded",
-            "429",
             "too many requests",
             "capacity",
             "usage limit",
         ]
-        return any(keyword in error_lower for keyword in rate_limit_keywords)
+        return bool(re.search(r"\b429\b", error_lower)) or any(
+            keyword in error_lower for keyword in rate_limit_keywords
+        )
 
     async def solve_task_async(self) -> SolverResult:
         """Solve the task in the current directory using Claude Code SDK."""

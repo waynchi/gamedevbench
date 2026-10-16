@@ -49,3 +49,10 @@ def test_codex_confined_mode_disables_tool_network_and_browser(monkeypatch):
     assert "browser_use" in command
     assert "plugins" in command
     assert "memories" in command
+
+
+def test_codex_rate_limit_detection_ignores_429_in_request_id():
+    assert CodexSolver.is_rate_limit_error("Error code: 429")
+    assert not CodexSolver.is_rate_limit_error(
+        "Internal server error (request_id=req_abc429def)"
+    )

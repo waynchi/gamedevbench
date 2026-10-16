@@ -79,3 +79,10 @@ def test_claude_confined_mode_disables_web_and_unsandboxed_commands(monkeypatch)
     assert captured["options"].disallowed_tools == ["WebFetch", "WebSearch"]
     assert captured["options"].sandbox["enabled"] is True
     assert captured["options"].sandbox["allowUnsandboxedCommands"] is False
+
+
+def test_claude_rate_limit_detection_ignores_429_in_request_id():
+    assert ClaudeCodeSolver.is_rate_limit_error("Error code: 429")
+    assert not ClaudeCodeSolver.is_rate_limit_error(
+        "Internal server error (request_id=req_abc429def)"
+    )
