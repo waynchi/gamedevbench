@@ -29,3 +29,10 @@ def test_gemini_confined_mode_loads_admin_web_policy(monkeypatch):
     assert command[policy_index + 1] == (
         "/home/sandbox/.gemini/policies/gamedevbench.toml"
     )
+
+
+def test_gemini_rate_limit_detection_ignores_429_in_request_id():
+    assert GeminiSolver.is_rate_limit_error("Error code: 429")
+    assert not GeminiSolver.is_rate_limit_error(
+        "Internal server error (request_id=req_abc429def)"
+    )

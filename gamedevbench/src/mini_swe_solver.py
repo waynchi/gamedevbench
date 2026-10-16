@@ -7,6 +7,7 @@ import subprocess
 import json
 import time
 import os
+import re
 from typing import Optional
 
 from gamedevbench.src.base_solver import BaseSolver
@@ -51,9 +52,11 @@ class MiniSweSolver(BaseSolver):
         error_lower = error_message.lower()
         rate_limit_keywords = [
             "rate limit", "rate_limit", "ratelimit",
-            "quota exceeded", "429", "too many requests",
+            "quota exceeded", "too many requests",
         ]
-        return any(keyword in error_lower for keyword in rate_limit_keywords)
+        return bool(re.search(r"\b429\b", error_lower)) or any(
+            keyword in error_lower for keyword in rate_limit_keywords
+        )
 
     def solve_task(self) -> SolverResult:
         """Solve the task in the current directory using Mini-SWE-Agent."""

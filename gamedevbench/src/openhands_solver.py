@@ -7,6 +7,7 @@ Uses OpenHands SDK with MCP server for Godot screenshots.
 import json
 import time
 import os
+import re
 import signal
 from typing import Optional
 
@@ -91,9 +92,11 @@ class OpenHandsSolver(BaseSolver):
         error_lower = error_message.lower()
         rate_limit_keywords = [
             "rate limit", "rate_limit", "ratelimit",
-            "quota exceeded", "429", "too many requests",
+            "quota exceeded", "too many requests",
         ]
-        return any(keyword in error_lower for keyword in rate_limit_keywords)
+        return bool(re.search(r"\b429\b", error_lower)) or any(
+            keyword in error_lower for keyword in rate_limit_keywords
+        )
 
     def _create_llm(self, api_key: str):
         """Create the OpenHands LLM with an optional effort override."""

@@ -8,6 +8,7 @@ import asyncio
 import json
 import time
 import os
+import re
 from typing import Any, Optional
 
 from gamedevbench.src.base_solver import BaseSolver
@@ -167,12 +168,13 @@ class GeminiSolver(BaseSolver):
             "ratelimit",
             "quota exceeded",
             "quota_exceeded",
-            "429",
             "too many requests",
             "resource exhausted",
             "resource_exhausted",
         ]
-        return any(keyword in error_lower for keyword in rate_limit_keywords)
+        return bool(re.search(r"\b429\b", error_lower)) or any(
+            keyword in error_lower for keyword in rate_limit_keywords
+        )
 
     async def _ensure_mcp_server_configured(self) -> bool:
         """Ensure the gamedevbench-mcp server is configured in Gemini CLI.

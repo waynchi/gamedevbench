@@ -32,3 +32,10 @@ def test_openhands_unset_effort_preserves_default(monkeypatch):
     OpenHandsSolver(model="openai/gpt-5.6")._create_llm("test-key")
 
     assert "reasoning_effort" not in captured
+
+
+def test_openhands_rate_limit_detection_ignores_429_in_request_id():
+    assert OpenHandsSolver.is_rate_limit_error("Error code: 429")
+    assert not OpenHandsSolver.is_rate_limit_error(
+        "Internal server error (request_id=req_abc429def)"
+    )

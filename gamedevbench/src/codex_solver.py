@@ -7,6 +7,7 @@ Uses Codex CLI with MCP server for Godot screenshots.
 import json
 import time
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any, Optional
@@ -145,9 +146,11 @@ args = ["run", "gamedevbench-mcp"]
         error_lower = error_message.lower()
         rate_limit_keywords = [
             "rate limit", "rate_limit", "ratelimit",
-            "quota exceeded", "429", "too many requests",
+            "quota exceeded", "too many requests",
         ]
-        return any(keyword in error_lower for keyword in rate_limit_keywords)
+        return bool(re.search(r"\b429\b", error_lower)) or any(
+            keyword in error_lower for keyword in rate_limit_keywords
+        )
 
     def solve_task(self) -> SolverResult:
         """Solve the task using Codex CLI."""
